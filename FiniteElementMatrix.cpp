@@ -44,8 +44,8 @@ Power_t FiniteElementMatrix::FormPowers(unsigned n,unsigned m)
     return powers;
 }
 
-void FiniteElementMatrix::AddVTVProduct(std::vector<float> a, std::vector<float> b, std::vector<float> c,
-                                        std::vector<float> d, double M[3][3], unsigned n1,
+void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
+                                        std::vector<double> d, double M[3][3], unsigned n1,
                                         unsigned m1, unsigned n2, unsigned m2)
 {
        double s_a, s_b;
@@ -116,6 +116,7 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<float> a, std::vector<float>
 
 void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
 {
+    //Bracket b;
     unsigned ilow, ihigh,
         jlow, jhigh,
         klow, khigh,
@@ -247,11 +248,15 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                                                             //наверно, мне надо будет создать под это отдельный метод
 
                                                             //В список будут добавляться 4 многочлена Сильвестра
+                                                            //--------------------------------------------------------
+                                                            //b.SetGains(gains);
+                                                            //b.SetPowers(powers);
+                                                            //--------------------------------------------------------
 
                                                             //теперь нужно добавить в список элемент свертки
 
                                                             //пусть процедура добавления будет addVTVProduct
-                                                            //AddVTVProduct(std::vector a, std::vector b, std::vector c, std::vector d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2);
+                                                            //AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2);
 
                                                         }
                                                     }//l внутрениий
@@ -269,3 +274,16 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
         }//beta
     }//gamma
 }//MatrixInit
+
+void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers)
+{
+    m_VectBracket.push_back(Bracket(gains,powers));
+}
+
+void FiniteElementMatrix::ShowVectBracket()
+{
+    for (unsigned i=0;i<m_VectBracket.size();i++)
+    {
+        ((Bracket)(m_VectBracket.at(i))).ShowElements();
+    }
+}
