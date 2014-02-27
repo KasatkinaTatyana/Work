@@ -1,9 +1,24 @@
 #include "FiniteElementMatrix.h"
 #include "bracket.h"
 
-FiniteElementMatrix::FiniteElementMatrix(unsigned p) : m_P(p)
-{
+#include <cstdlib>
+#include <ctime>
 
+
+FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[4][3], double Eps[3][3], double Mu[3][3]) : m_P(p)
+{
+    for (unsigned i=0;i<4;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            m_Peaks[i][j]=simplex_peaks[i][j];
+            if (i<=2)
+            {
+                m_MatrixMu[i][j]=Mu[i][j];
+                m_MatrixEps[i][j]=Eps[i][j];
+            }
+        }
+    }
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -11,106 +26,124 @@ FiniteElementMatrix::~FiniteElementMatrix()
 
 }
 
-Power_t FiniteElementMatrix::FormPowers(unsigned n,unsigned m)
+Power_t FiniteElementMatrix::DefPowers(unsigned n,unsigned m)
 {
-    Power_t powers;
+    Power_t powers={0,0,0,0};
 
-    if ((n==1)||(m==2))
+    if (n==1)
     {
-        powers.p1=1;
-        powers.p2=1;
+        powers.p1=powers.p1+1;
     }
-    if ((n==1)||(m==3))
+    if (n==2)
     {
-        powers.p1=1;
-        powers.p3=1;
+        powers.p2=powers.p2+1;
     }
-    if ((n==1)||(m==4))
+    if (n==3)
     {
-        powers.p1=1;
-        powers.p4=1;
+        powers.p3=powers.p3+1;
     }
-    if ((n==2)||(m==3))
+    if (n==4)
     {
-        powers.p2=1;
-        powers.p3=1;
-    }
-    if ((n==3)||(m==4))
-    {
-        powers.p3=1;
-        powers.p4=1;
+        powers.p4=powers.p4+1;
     }
 
+    if (m==1)
+    {
+        powers.p1=powers.p1+1;
+    }
+    if (m==2)
+    {
+        powers.p2=powers.p2+1;
+    }
+    if (m==3)
+    {
+        powers.p3=powers.p3+1;
+    }
+    if (m==4)
+    {
+        powers.p4=powers.p4+1;
+    }
     return powers;
 }
 
 void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                                        std::vector<double> d, double M[3][3], unsigned n1,
+                                        std::vector<double> d, double M[][3], unsigned n1,
                                         unsigned m1, unsigned n2, unsigned m2)
 {
        double s_a, s_b;
        std::vector<double> M_a;
        std::vector<double> M_b;
-       for (unsigned i=0;i<2;i++)
+       for (unsigned i=0;i<3;i++)
        {
            s_a=0; s_b=0;
-           for (unsigned j=0;j<2;j++)
+           for (unsigned j=0;j<3;j++)
            {
                s_a=s_a+a[j]*M[j][i];
                s_b=s_b+b[j]*M[j][i];
            }
 
-           M_a[i]=s_a;
-           M_b[i]=s_b;
+           M_a.push_back(s_a);
+           M_b.push_back(s_b);
        }
 
        //сначала формируем вектор коэффициентов
 
        double s;
-       std::vector<float> gains;
+       std::vector<double> gains;
 
        s=0;
-       for (unsigned i=0;i<2;i++)
+       for (unsigned i=0;i<3;i++)
        {
            s=s+c[i]*M_a[i];
        }
-       gains[0]=s;
+       gains.push_back(s);
 
        s=0;
-       for (unsigned i=0;i<2;i++)
+       for (unsigned i=0;i<3;i++)
        {
            s=s-d[i]*M_a[i];
        }
-       gains[1]=s;
+       gains.push_back(s);
 
        s=0;
-       for (unsigned i=0;i<2;i++)
+       for (unsigned i=0;i<3;i++)
        {
            s=s-c[i]*M_b[i];
        }
-       gains[2]=s;
+       gains.push_back(s);
 
        s=0;
-       for (unsigned i=0;i<2;i++)
+       for (unsigned i=0;i<3;i++)
        {
            s=s+d[i]*M_b[i];
        }
-       gains[3]=s;
+       gains.push_back(s);
 
        //формируем вектор степеней
 
        Power_t local_powers={0,0,0,0};
        std::vector<Power_t> powers;
 
-       local_powers=FormPowers(n1,m1); //можно ли здесь так сделать?
+       local_powers=DefPowers(n1,n2);
 
        powers.push_back(local_powers);
 
-       //аналогично нужно сделать еще 3 раза
-       //дл€ чисел n1,m2; m1,n2; n2,m2
+       //аналогично дл€ чисел n1,m2; m1,n2; m2,m2
 
-       //полученную скобку нужно добавить в список
+       local_powers=DefPowers(n1,m2);
 
+       powers.push_back(local_powers);
+
+       local_powers=DefPowers(n2,m1);
+
+       powers.push_back(local_powers);
+
+       local_powers=DefPowers(m1,m2);
+
+       powers.push_back(local_powers);
+
+       //полученную скобку добавл€ем в список
+       AddToVectBracket(gains, powers);
 }
 
 
@@ -254,10 +287,20 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                                                             //--------------------------------------------------------
 
                                                             //теперь нужно добавить в список элемент свертки
-
-                                                            //пусть процедура добавлени€ будет addVTVProduct
-                                                            //AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c, std::vector<double> d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2);
-
+                                                            unsigned n1, m1, n2, m2;
+                                                            std::vector<double> a, b, c, d;
+                                                            std::vector<unsigned> nm1, nm2;
+                                                            nm1=Def_nm(gamma,beta);
+                                                            nm2=Def_nm(in_gamma,in_beta);
+                                                            n1=nm1[0];
+                                                            m1=nm1[1];
+                                                            n2=nm2[0];
+                                                            m2=nm2[1];
+                                                            a=DefVector(n1);
+                                                            b=DefVector(m1);
+                                                            c=DefVector(n2);
+                                                            d=DefVector(m2);
+                                                            AddVTVProduct(a, b, c, d, m_MatrixEps, n1, m1, n2, m2);
                                                         }
                                                     }//l внутрениий
                                                 }//k внутренний
@@ -287,3 +330,118 @@ void FiniteElementMatrix::ShowVectBracket()
         ((Bracket)(m_VectBracket.at(i))).ShowElements();
     }
 }
+//-----------------------ќпределение вектора----------------------------------------------------------
+std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
+{
+    std::vector<double> result;
+    for (unsigned i=0;i<3;i++)
+    {
+        result.push_back(0);
+    }
+
+    std::vector<double> r1, r2, r3, r4;
+
+    for (unsigned i=0;i<3;i++)
+    {
+        r1.push_back(m_Peaks[0][i]);
+        r2.push_back(m_Peaks[1][i]);
+        r3.push_back(m_Peaks[2][i]);
+        r4.push_back(m_Peaks[3][i]);
+    }
+    std::vector<double> l1, l2, l3, l4;
+    for (unsigned i=0;i<3;i++)
+    {
+        l1.push_back(r1[i]-r4[i]);
+        l2.push_back(r2[i]-r4[i]);
+        l3.push_back(r3[i]-r4[i]);
+        l4.push_back(0);                   //????
+    }
+    double Icob;
+    Icob=ScalarProduct(VectProduct(l1,l2),l3);
+
+
+    if (ind==1)
+    {
+        result=VectProduct(l2,l3);
+    }
+    if (ind==2)
+    {
+        return VectProduct(l3,l4);
+    }
+    if (ind==3)
+    {
+        return VectProduct(l1,l2);
+    }
+    if (ind==4)
+    {
+        std::vector<double> a,b,c;
+        a=VectProduct(l2,l3);
+        b=VectProduct(l3,l4);
+        c=VectProduct(l1,l2);
+        for (unsigned i=0;i<3;i++)
+        {
+            result[i]=-a[i]-b[i]-c[i];
+        }
+    }
+    for (unsigned i=0;i<3;i++)
+    {
+        result[i]=result[i]/Icob;
+    }
+    return result;
+}
+//----------------------------------------------------------------------------------------------------
+
+//-----------------ќпределение индексов n, m если заданы gamma и beta---------------------------------
+std::vector<unsigned> FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta)
+{
+    unsigned n, m;
+    std::vector<unsigned> vect;
+    if ((gamma==1)&&(beta==2))
+    {
+        n=3;
+        m=4;
+    }
+    if ((gamma==1)&&(beta==3))
+    {
+        n=2;
+        m=4;
+    }
+    if ((gamma==1)&&(beta==4))
+    {
+        n=2;
+        m=3;
+    }
+    if ((gamma==2)&&(beta==3))
+    {
+        n=1;
+        m=4;
+    }
+    if ((gamma==3)&&(beta==4))
+    {
+        n=1;
+        m=2;
+    }
+    vect.push_back(n);
+    vect.push_back(m);
+    return vect;
+}
+//возвращает вектор, vect[0]=n, vect[1]=m; n<m;
+//----------------------------------------------------------------------------------------------------
+//----------------¬екторное произведение двух векторов------------------------------------------------
+std::vector<double> FiniteElementMatrix::VectProduct(std::vector<double> a, std::vector<double> b)
+{
+    std::vector<double> result;
+    result.push_back(a[1]*b[2]-a[2]*b[1]);
+    result.push_back(a[2]*b[0]-a[0]*b[2]);
+    result.push_back(a[0]*b[1]-a[1]*b[0]);
+    return result;
+}
+//----------------------------------------------------------------------------------------------------
+//-------------—кал€рное произведение двух векторов---------------------------------------------------
+double FiniteElementMatrix::ScalarProduct(std::vector<double> a, std::vector<double> b)
+{
+    double result;
+    result=a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+    return result;
+}
+//----------------------------------------------------------------------------------------------------
