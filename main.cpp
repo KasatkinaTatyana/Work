@@ -4,21 +4,62 @@
 #include "bracket.h"
 #include "FiniteElementMatrix.h"
 
+using namespace std;
+
 void test_bracket(unsigned N, unsigned p_i, double g_i);
 void test_vectBracket(unsigned N, unsigned p_i, double g_i);
 void Test_nm();
 void Test_DefVector();
 void Test_AddVTVProduct();
+void Test_AddSilvester();
+
+double Fact(unsigned N);
+double m_ArrayFact[26];
+
+inline double CalcFact(unsigned N)
+{
+    return m_ArrayFact[N];
+}
+
+double Fact(unsigned N)
+{
+    double f = 1.0;
+
+    for (unsigned i=0;i<N;i++)
+    {
+        f *= (i+1);
+    }
+
+    return f;
+}
+
+void PrintFact(unsigned TO)
+{
+    for (unsigned i=0;i<TO+1;i++)
+    {
+        cout<<i<<": "<<Fact(i)<<endl;
+    }
+}
+
 
 //------------------------------------------------------------------
 
 int main(int argc, char *argv[])
 {
+    //Инициализация массива факториалами
+    //максимальный порядок 20; максимальный необходимый факториал 25
+    for (unsigned i=0;i<26;i++)
+    {
+        m_ArrayFact[i]=Fact(i);
+    }
+
     //test_bracket(2,1,1);
     //test_vectBracket(2,1,1);
     //Test_nm();
     //Test_DefVector();
-    Test_AddVTVProduct();
+    //Test_AddVTVProduct();
+    Test_AddSilvester();
+    //PrintFact(20);
     return 0;
 }
 
@@ -220,6 +261,50 @@ void Test_AddVTVProduct()
     }
     FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 
-    f.AddVTVProduct(a,b,c,d,M,3,4,3,4);
-    unsigned var=1;
+    //f.AddVTVProduct(a,b,c,d,M,3,4,3,4);
+}
+
+void Test_AddSilvester()
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3], M[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+                M[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+                M[i][j]=0;
+            }
+        }
+    }
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    //f.AddSilvester(1,2,2,1,f.);
 }

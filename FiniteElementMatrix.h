@@ -18,18 +18,21 @@ public:
 
         std::vector<Bracket>& GetVectBracket() {return m_VectBracket;}
 
-        void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers);
+        void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
 
-        void ShowVectBracket();
+        void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
-        void AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                           std::vector<double> d, double M[][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2);
 private:
         unsigned m_P;
+
         Power_t DefPowers(unsigned n,unsigned m);
-        std::vector<Bracket> m_VectBracket;
-        //void AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-        //                   std::vector<double> d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2);
+        std::vector<Bracket> m_VectBracket;       //эта скобка соответствует паре двух элементов
+        std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
+                                                  //при проходе по всем остальным элементам
+
+        void AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
+                           std::vector<double> d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2,
+                           std::vector<Bracket>& vect_bracket);
         std::vector<double> DefVector(unsigned ind);
         std::vector<unsigned> Def_nm(unsigned gamma, unsigned beta);
         double m_Peaks[4][3];       //массив координат (4) вершин тетраэдра
@@ -39,5 +42,9 @@ private:
 
         double m_MatrixMu[3][3];    //Матрица тензора магнитной проницаемости
         double m_MatrixEps[3][3];    //Матрица тензора диэлектрической проницаемости
+
+        void AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind, std::vector<Bracket>& vect_bracket);
+
+        void LocalPowersChange(Power_t& local_powers, unsigned ind,unsigned value);
 
 };

@@ -68,97 +68,100 @@ Power_t FiniteElementMatrix::DefPowers(unsigned n,unsigned m)
 
 void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
                                         std::vector<double> d, double M[][3], unsigned n1,
-                                        unsigned m1, unsigned n2, unsigned m2)
+                                        unsigned m1, unsigned n2, unsigned m2,
+                                        std::vector<Bracket>& vect_bracket)
 {
-       double s_a, s_b;
-       std::vector<double> M_a;
-       std::vector<double> M_b;
-       for (unsigned i=0;i<3;i++)
-       {
-           s_a=0; s_b=0;
-           for (unsigned j=0;j<3;j++)
-           {
-               s_a=s_a+a[j]*M[j][i];
-               s_b=s_b+b[j]*M[j][i];
-           }
+    double s_a, s_b;
+    std::vector<double> M_a;
+    std::vector<double> M_b;
+    for (unsigned i=0;i<3;i++)
+    {
+        s_a=0; s_b=0;
+        for (unsigned j=0;j<3;j++)
+        {
+            s_a=s_a+a[j]*M[j][i];
+            s_b=s_b+b[j]*M[j][i];
+        }
 
-           M_a.push_back(s_a);
-           M_b.push_back(s_b);
-       }
+        M_a.push_back(s_a);
+        M_b.push_back(s_b);
+    }
 
-       //сначала формируем вектор коэффициентов
+    //сначала формируем вектор коэффициентов
 
-       double s;
-       std::vector<double> gains;
+    double s;
+    std::vector<double> gains;
 
-       s=0;
-       for (unsigned i=0;i<3;i++)
-       {
-           s=s+c[i]*M_a[i];
-       }
-       gains.push_back(s);
+    //формируем вектор степеней
 
-       s=0;
-       for (unsigned i=0;i<3;i++)
-       {
-           s=s-d[i]*M_a[i];
-       }
-       gains.push_back(s);
+    Power_t local_powers={0,0,0,0};
+    std::vector<Power_t> powers;
 
-       s=0;
-       for (unsigned i=0;i<3;i++)
-       {
-           s=s-c[i]*M_b[i];
-       }
-       gains.push_back(s);
+    s=0;
+    for (unsigned i=0;i<3;i++)
+    {
+        s=s+c[i]*M_a[i];
+    }
+    if (s!=0)
+    {
+        gains.push_back(s);
+        local_powers=DefPowers(n1,n2);
+        powers.push_back(local_powers);
+    }
 
-       s=0;
-       for (unsigned i=0;i<3;i++)
-       {
-           s=s+d[i]*M_b[i];
-       }
-       gains.push_back(s);
+    //аналогично для чисел n1,m2; m1,n2; m2,m2
+    s=0;
+    for (unsigned i=0;i<3;i++)
+    {
+        s=s-d[i]*M_a[i];
+    }
+    if (s!=0)
+    {
+        gains.push_back(s);
+        local_powers=DefPowers(n1,m2);
+        powers.push_back(local_powers);
+    }
 
-       //формируем вектор степеней
+    s=0;
+    for (unsigned i=0;i<3;i++)
+    {
+        s=s-c[i]*M_b[i];
+    }
+    if (s!=0)
+    {
+        gains.push_back(s);
+        local_powers=DefPowers(n2,m1);
+        powers.push_back(local_powers);
+    }
 
-       Power_t local_powers={0,0,0,0};
-       std::vector<Power_t> powers;
+    s=0;
+    for (unsigned i=0;i<3;i++)
+    {
+        s=s+d[i]*M_b[i];
+    }
+    if (s!=0)
+    {
+        gains.push_back(s);
+        local_powers=DefPowers(m1,m2);
+        powers.push_back(local_powers);
+    }
 
-       local_powers=DefPowers(n1,n2);
-
-       powers.push_back(local_powers);
-
-       //аналогично для чисел n1,m2; m1,n2; m2,m2
-
-       local_powers=DefPowers(n1,m2);
-
-       powers.push_back(local_powers);
-
-       local_powers=DefPowers(n2,m1);
-
-       powers.push_back(local_powers);
-
-       local_powers=DefPowers(m1,m2);
-
-       powers.push_back(local_powers);
-
-       //полученную скобку добавляем в список
-       AddToVectBracket(gains, powers);
+    //полученную скобку добавляем в список
+    AddToVectBracket(gains, powers,vect_bracket);
 }
 
 
 void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
 {
-    //Bracket b;
     unsigned ilow, ihigh,
-        jlow, jhigh,
-        klow, khigh,
-        llow, lhigh;
+    jlow, jhigh,
+    klow, khigh,
+    llow, lhigh;
 
     unsigned in_ilow, in_ihigh,
-             in_jlow, in_jhigh,
-             in_klow, in_khigh,
-             in_llow, in_lhigh;
+    in_jlow, in_jhigh,
+    in_klow, in_khigh,
+    in_llow, in_lhigh;
 
     for (unsigned gamma=1;gamma<=4;gamma++)
     {
@@ -215,10 +218,21 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                         {
                             if (i+j+k+l==m_P+2)
                             {
-                                //здесь будут формироваться многочлены Сильвестра;
-                                //наверно, мне надо будет создать под это отдельный метод
-
+                                //В список добавляются 4 многочлена Сильвестра
                                 //В список будут добавляться 4 многочлена Сильвестра
+                                AddSilvester(gamma, beta, 1, i, m_CurVectBracket);
+                                AddSilvester(gamma, beta, 2, j, m_CurVectBracket);
+                                AddSilvester(gamma, beta, 3, k, m_CurVectBracket);
+                                AddSilvester(gamma, beta, 4, l, m_CurVectBracket);
+
+                                //Формирую скобку cur_bracket для текущего элемента, а именно перемножаю
+                                //скобки массива m_CurVectBracket
+
+                                Bracket cur_bracket=m_CurVectBracket[0];
+                                for (unsigned counter=1; counter<m_CurVectBracket.size();counter++)
+                                {
+                                    cur_bracket=cur_bracket*m_CurVectBracket[counter];
+                                }
 
                                 //теперь запускаю внутрение циклы
 
@@ -277,14 +291,14 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                                                     {
                                                         if (in_i+in_j+in_k+in_l==m_P+2)
                                                         {
-                                                            //здесь будут формироваться многочлены Сильвестра;
-                                                            //наверно, мне надо будет создать под это отдельный метод
-
+                                                            AddToVectBracket(cur_bracket.GetGains(),
+                                                                             cur_bracket.GetPowers(),
+                                                                             m_VectBracket);
                                                             //В список будут добавляться 4 многочлена Сильвестра
-                                                            //--------------------------------------------------------
-                                                            //b.SetGains(gains);
-                                                            //b.SetPowers(powers);
-                                                            //--------------------------------------------------------
+                                                            AddSilvester(in_gamma, in_beta, 1, in_i, m_VectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 2, in_j, m_VectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 3, in_k, m_VectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 4, in_l, m_VectBracket);
 
                                                             //теперь нужно добавить в список элемент свертки
                                                             unsigned n1, m1, n2, m2;
@@ -300,7 +314,22 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                                                             b=DefVector(m1);
                                                             c=DefVector(n2);
                                                             d=DefVector(m2);
-                                                            AddVTVProduct(a, b, c, d, m_MatrixEps, n1, m1, n2, m2);
+                                                            AddVTVProduct(a, b, c, d, m_MatrixEps, n1, m1, n2, m2,
+                                                                          m_VectBracket);
+                                                            //----------------Перемножение скобок--------------------
+                                                            Bracket finite_bracket = m_VectBracket[0];
+                                                            for (unsigned counter=1;counter<m_VectBracket.size();counter++)
+                                                            {
+                                                                finite_bracket=finite_bracket*m_VectBracket[counter];
+                                                            }
+                                                            //-------------------------------------------------------
+                                                            //----------------Интегрирование-------------------------
+
+                                                            //-------------------------------------------------------
+                                                            //----------------Удаление скобки------------------------
+                                                            m_VectBracket.clear();
+                                                            finite_bracket.BracketCleanUp();
+                                                            //-------------------------------------------------------
                                                         }
                                                     }//l внутрениий
                                                 }//k внутренний
@@ -308,8 +337,11 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
                                         }//i внутренний
                                     }//beta внутренний
                                 }//gamma внутренний
-                            }//проверка условия (i+j+k+l==p+2)
 
+                                m_CurVectBracket.clear();
+                                cur_bracket.BracketCleanUp();
+
+                            }//проверка условия (i+j+k+l==m_P+2)
                         }//l
                     }//k
                 }//j
@@ -318,16 +350,17 @@ void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
     }//gamma
 }//MatrixInit
 
-void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers)
+void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers,
+                                           std::vector<Bracket>& vect_bracket)
 {
-    m_VectBracket.push_back(Bracket(gains,powers));
+    vect_bracket.push_back(Bracket(gains,powers));
 }
 
-void FiniteElementMatrix::ShowVectBracket()
+void FiniteElementMatrix::ShowVectBracket(std::vector<Bracket>& vect_bracket)
 {
     for (unsigned i=0;i<m_VectBracket.size();i++)
     {
-        ((Bracket)(m_VectBracket.at(i))).ShowElements();
+        ((Bracket)(vect_bracket.at(i))).ShowElements();
     }
 }
 //-----------------------Определение вектора----------------------------------------------------------
@@ -348,13 +381,12 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
         r3.push_back(m_Peaks[2][i]);
         r4.push_back(m_Peaks[3][i]);
     }
-    std::vector<double> l1, l2, l3, l4;
+    std::vector<double> l1, l2, l3;
     for (unsigned i=0;i<3;i++)
     {
         l1.push_back(r1[i]-r4[i]);
         l2.push_back(r2[i]-r4[i]);
         l3.push_back(r3[i]-r4[i]);
-        l4.push_back(0);                   //????
     }
     double Icob;
     Icob=ScalarProduct(VectProduct(l1,l2),l3);
@@ -366,7 +398,7 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
     }
     if (ind==2)
     {
-        return VectProduct(l3,l4);
+        return VectProduct(l3,l1);
     }
     if (ind==3)
     {
@@ -376,7 +408,7 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
     {
         std::vector<double> a,b,c;
         a=VectProduct(l2,l3);
-        b=VectProduct(l3,l4);
+        b=VectProduct(l3,l1);
         c=VectProduct(l1,l2);
         for (unsigned i=0;i<3;i++)
         {
@@ -445,3 +477,115 @@ double FiniteElementMatrix::ScalarProduct(std::vector<double> a, std::vector<dou
     return result;
 }
 //----------------------------------------------------------------------------------------------------
+//-------------Добавление многочлена Сильвестра-------------------------------------------------------
+//--ind - индекс (i, j, k или l);
+//--numb - число 1, 2, 3, 4
+//если gamma или beta равны числу numb, то добавляемый многочлен Сильвестра будет несмещенным,
+//иначе - смещенным
+//если берется i-й многочлен, то numb=1. В этом случае будет многочлен по степени ksi_1 (p1).
+//Если j-й многочлен, то numb=2, многочлен относительно степени ksi_2 (p2);
+//numb=3 - p3; numb=4 - p4.
+void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind,
+                                       std::vector<Bracket>& vect_bracket)
+{
+    Power_t local_powers={0,0,0,0};
+    std::vector<Power_t> powers;
+    std::vector<double> gains;
+
+    if ((gamma == numb)||(beta==numb)) //добавление несмещенного многочлена Сильвестра
+    {
+        if (ind==0)
+        {
+            if (vect_bracket.empty())
+            {
+                gains.push_back(1);
+                powers.push_back(local_powers);
+                AddToVectBracket(gains,powers,vect_bracket);
+            }
+        }
+        else
+        {
+            double g;
+            for (unsigned s=0;s<=ind-1;s++)
+            {
+                g=(m_P+2.0)/(s+1.0);
+                if (g!=0)
+                {
+                    gains.push_back(g);
+                    LocalPowersChange(local_powers,numb,1);
+                    powers.push_back(local_powers);
+                }
+
+                g=(-s+0.0)/(s+1.0);
+                if (g!=0)
+                {
+                    gains.push_back(g);
+                    LocalPowersChange(local_powers,numb,0);
+                    powers.push_back(local_powers);
+                }
+
+                AddToVectBracket(gains,powers,vect_bracket);
+                gains.clear();
+            }
+        }
+    }
+    else                    //добавление смещенного многочлена Сильвестра
+    {
+        if (ind==1)
+        {
+            if (m_VectBracket.empty())
+            {
+                gains.push_back(1);
+                powers.push_back(local_powers);
+                AddToVectBracket(gains,powers,vect_bracket);
+            }
+        }
+        else
+        {
+            double g;
+            for (unsigned s=0;s<=ind-1;s++)
+            {
+                g=(m_P+2.0)/(s+1.0);
+                if (g!=0)
+                {
+                    gains.push_back(g);
+                    LocalPowersChange(local_powers,numb,1);
+                    powers.push_back(local_powers);
+                }
+                g=(-s-1.0)/(s+1.0);
+                if (g!=0)
+                {
+                    gains.push_back(g);
+                    LocalPowersChange(local_powers,numb,0);
+                    powers.push_back(local_powers);
+                }
+
+                AddToVectBracket(gains,powers,vect_bracket);
+                gains.clear();
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------------------------
+//----------В переменной local_powers присвоить полю с номером ind значение value--------------
+void FiniteElementMatrix::LocalPowersChange(Power_t& local_powers, unsigned ind, unsigned value)
+{
+    if (ind==1)
+    {
+        local_powers.p1=value;
+    }
+    if (ind==2)
+    {
+        local_powers.p2=value;
+    }
+    if (ind==3)
+    {
+        local_powers.p3=value;
+    }
+    if (ind==4)
+    {
+        local_powers.p4=value;
+    }
+}
+//----------------------------------------------------------------------------------------------
+
