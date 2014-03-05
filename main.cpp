@@ -13,7 +13,7 @@ void Test_DefVector();
 void Test_AddVTVProduct();
 void Test_AddSilvester();
 
-double Fact(unsigned N);
+/*double Fact(unsigned N);
 double m_ArrayFact[26];
 
 inline double CalcFact(unsigned N)
@@ -39,20 +39,13 @@ void PrintFact(unsigned TO)
     {
         cout<<i<<": "<<Fact(i)<<endl;
     }
-}
+}*/
 
 
 //------------------------------------------------------------------
 
 int main(int argc, char *argv[])
 {
-    //Инициализация массива факториалами
-    //максимальный порядок 20; максимальный необходимый факториал 25
-    for (unsigned i=0;i<26;i++)
-    {
-        m_ArrayFact[i]=Fact(i);
-    }
-
     //test_bracket(2,1,1);
     //test_vectBracket(2,1,1);
     //Test_nm();

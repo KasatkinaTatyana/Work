@@ -5,6 +5,7 @@
 #include <ctime>
 
 
+
 FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[4][3], double Eps[3][3], double Mu[3][3]) : m_P(p)
 {
     for (unsigned i=0;i<4;i++)
@@ -18,6 +19,13 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[4][3], 
                 m_MatrixEps[i][j]=Eps[i][j];
             }
         }
+    }
+    //Инициализация массива факториалами
+    //максимальный порядок 20; максимальный необходимый факториал 25
+    unsigned count=26;
+    for (unsigned i=0;i<count;i++)
+    {
+        m_ArrayFact[i]=Fact(i);
     }
 }
 
@@ -588,4 +596,45 @@ void FiniteElementMatrix::LocalPowersChange(Power_t& local_powers, unsigned ind,
     }
 }
 //----------------------------------------------------------------------------------------------
+//-----------------------Вычисление факториала-------------------------------------------------
+double FiniteElementMatrix::Fact(unsigned N)
+{
+    double f = 1.0;
 
+    for (unsigned i=0;i<N;i++)
+    {
+        f *= (i+1);
+    }
+
+    return f;
+}
+//----------------------------------------------------------------------------------------------
+inline double FiniteElementMatrix::CalcFact(unsigned N)
+{
+    return m_ArrayFact[N];
+}
+//--------------------------Интегрирование скобки-----------------------------------------------
+double FiniteElementMatrix::Integrate (Bracket_t& br)
+{
+    double I=0;
+    double pow1, pow2, pow3, pow4;
+    std::vector<Power_t> arr_local_powers=br.GetPowers();
+    Power_t local_powers;
+    double i1, i2, i3, i4, i_s;
+    for (unsigned i=0;i<(br.GetGains()).size();i++)
+    {
+
+        local_powers=arr_local_powers.at(i);
+        pow1=local_powers.p1;
+        pow2=local_powers.p2;
+        pow3=local_powers.p3;
+        pow4=local_powers.p4;
+        i1=CalcFact(unsigned(pow1));
+        i2=CalcFact(unsigned(pow2));
+        i3=CalcFact(unsigned(pow3));
+        i4=CalcFact(unsigned(pow4));
+        i_s=CalcFact(unsigned(pow1+pow2+pow3+pow4+3));
+        I=I+(br.GetGains())[i]*i1*i2*i3*i4/i_s;
+    }
+    return I;
+}

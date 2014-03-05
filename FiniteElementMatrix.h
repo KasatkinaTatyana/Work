@@ -9,6 +9,8 @@
 #include <stdlib.h>
 using namespace std;
 
+typedef class Bracket Bracket_t;
+
 class FiniteElementMatrix
 {
 public:
@@ -47,4 +49,17 @@ private:
 
         void LocalPowersChange(Power_t& local_powers, unsigned ind,unsigned value);
 
+        double Integrate (Bracket_t& br);
+
+        double* m_MetrMatrix;                    //Метрическая матрица
+        double* m_EulerMatrix;                   //Матрица Эйлера
+
+
+        //Вычисление факториалов--------------------------------------------------------------------------------------------
+        double Fact(unsigned N);
+
+        double m_ArrayFact[26];
+
+        inline double CalcFact(unsigned N);
+        //------------------------------------------------------------------------------------------------------------------
 };

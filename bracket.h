@@ -13,6 +13,7 @@ struct _Power {
 
 typedef struct _Power Power_t;
 
+
 class Bracket
 {
 public:
