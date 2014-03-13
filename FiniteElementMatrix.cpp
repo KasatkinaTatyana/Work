@@ -1,4 +1,4 @@
-#include "FiniteElementMatrix.h"
+ #include "FiniteElementMatrix.h"
 #include "bracket.h"
 
 #include <cstdlib>
@@ -6,14 +6,15 @@
 
 
 
-FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[4][3], double Eps[3][3], double Mu[3][3]) : m_P(p)
+FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_CountPeaks][m_Dim],
+                                         double Eps[m_Dim][m_Dim], double Mu[m_Dim][m_Dim]) : m_P(p)
 {
-    for (unsigned i=0;i<4;i++)
+    for (unsigned i=0;i<m_CountPeaks;i++)
     {
-        for (unsigned j=0;j<3;j++)
+        for (unsigned j=0;j<m_Dim;j++)
         {
             m_Peaks[i][j]=simplex_peaks[i][j];
-            if (i<=2)
+            if (i<m_Dim)
             {
                 m_MatrixMu[i][j]=Mu[i][j];
                 m_MatrixEps[i][j]=Eps[i][j];
@@ -22,11 +23,13 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[4][3], 
     }
     //Инициализация массива факториалами
     //максимальный порядок 20; максимальный необходимый факториал 25
-    unsigned count=26;
-    for (unsigned i=0;i<count;i++)
+
+    for (unsigned i=0;i<m_MaxOrderFact+1;i++)
     {
         m_ArrayFact[i]=Fact(i);
     }
+    //--------------------------
+    m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -75,17 +78,17 @@ Power_t FiniteElementMatrix::DefPowers(unsigned n,unsigned m)
 }
 
 void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                                        std::vector<double> d, double M[][3], unsigned n1,
+                                        std::vector<double> d, double M[][m_Dim], unsigned n1,
                                         unsigned m1, unsigned n2, unsigned m2,
                                         std::vector<Bracket>& vect_bracket)
 {
     double s_a, s_b;
     std::vector<double> M_a;
     std::vector<double> M_b;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         s_a=0; s_b=0;
-        for (unsigned j=0;j<3;j++)
+        for (unsigned j=0;j<m_Dim;j++)
         {
             s_a=s_a+a[j]*M[j][i];
             s_b=s_b+b[j]*M[j][i];
@@ -106,7 +109,7 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<doubl
     std::vector<Power_t> powers;
 
     s=0;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         s=s+c[i]*M_a[i];
     }
@@ -119,7 +122,7 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<doubl
 
     //аналогично для чисел n1,m2; m1,n2; m2,m2
     s=0;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         s=s-d[i]*M_a[i];
     }
@@ -131,7 +134,7 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<doubl
     }
 
     s=0;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         s=s-c[i]*M_b[i];
     }
@@ -143,7 +146,7 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<doubl
     }
 
     s=0;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         s=s+d[i]*M_b[i];
     }
@@ -159,8 +162,21 @@ void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<doubl
 }
 
 
-void FiniteElementMatrix::MatrixInit(double eps[3][3], double mu[3][3])
+void FiniteElementMatrix::MatrixInit()
+
 {
+    //Выделяю память под матрицу (метрическая и Эйлера)
+
+    m_MetrMatrix=new double*[m_MatrixSize];
+    m_EulerMatrix=new double*[m_MatrixSize];
+
+    for (unsigned i=0;i<m_MatrixSize;i++)
+    {
+        m_MetrMatrix[i]=new double [m_MatrixSize];
+        m_EulerMatrix[i]=new double [m_MatrixSize];
+    }
+    //--------------------------------------------------
+
     unsigned ilow, ihigh,
     jlow, jhigh,
     klow, khigh,
@@ -375,14 +391,14 @@ void FiniteElementMatrix::ShowVectBracket(std::vector<Bracket>& vect_bracket)
 std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
 {
     std::vector<double> result;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         result.push_back(0);
     }
 
     std::vector<double> r1, r2, r3, r4;
 
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         r1.push_back(m_Peaks[0][i]);
         r2.push_back(m_Peaks[1][i]);
@@ -390,7 +406,7 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
         r4.push_back(m_Peaks[3][i]);
     }
     std::vector<double> l1, l2, l3;
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         l1.push_back(r1[i]-r4[i]);
         l2.push_back(r2[i]-r4[i]);
@@ -418,12 +434,12 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
         a=VectProduct(l2,l3);
         b=VectProduct(l3,l1);
         c=VectProduct(l1,l2);
-        for (unsigned i=0;i<3;i++)
+        for (unsigned i=0;i<m_Dim;i++)
         {
             result[i]=-a[i]-b[i]-c[i];
         }
     }
-    for (unsigned i=0;i<3;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         result[i]=result[i]/Icob;
     }
@@ -637,4 +653,26 @@ double FiniteElementMatrix::Integrate (Bracket_t& br)
         I=I+(br.GetGains())[i]*i1*i2*i3*i4/i_s;
     }
     return I;
+}
+//--------------------------Произведение вектора тензора и вектора в общем виде-------------------------
+void FiniteElementMatrix::AddRotMatrixProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim])
+{
+    Bracket br(1);
+    std::vector<double> gains;
+    gains.push_back(1.0);
+    br.SetGains(gains);
+    Power_t p={0, 0, 0, 0};
+
+    std::vector<Power_t> powers;
+    powers.push_back(p);
+    br.SetPowers(powers);
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        for (unsigned k=0;k<m_Dim;k++)
+        {
+
+
+        }
+    }
 }

@@ -140,3 +140,56 @@ Bracket Bracket::operator*(Bracket& b)
     }
     return result;
 }
+
+Bracket Bracket::operator*(double number)
+{
+    Bracket result(m_N);
+
+    std::vector<double> gains;
+    for (unsigned i=0;i<m_N;i++)
+    {
+        gains.push_back(m_Gains[i]*number);
+    }
+    result.SetGains(gains);
+    result.SetPowers(m_Powers);
+    return result;
+}
+
+Bracket Bracket::operator*=(Bracket& b)
+{
+    unsigned M = b.BracketSize()*BracketSize();
+
+    Bracket result(M);
+
+    result=(*this)*b;
+    return result;
+}
+
+Bracket Bracket::operator+(Bracket& b)
+{
+    unsigned M = b.BracketSize()+BracketSize();
+    Bracket result(M);
+
+    std::vector<double> gains=m_Gains;
+    std::vector<Power_t> powers=m_Powers;
+
+    for (unsigned i=0;i<b.BracketSize();i++)
+    {
+        gains.push_back((b.GetGains())[i]);
+        powers.push_back((b.GetPowers())[i]);
+    }
+
+    result.SetGains(gains);
+    result.SetPowers(powers);
+    return result;
+}
+
+Bracket Bracket::operator+=(Bracket& b)
+{
+    unsigned M = b.BracketSize()+BracketSize();
+
+    Bracket result(M);
+
+    result=(*this)+b;
+    return result;
+}

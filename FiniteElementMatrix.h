@@ -14,17 +14,25 @@ typedef class Bracket Bracket_t;
 class FiniteElementMatrix
 {
 public:
-        FiniteElementMatrix(unsigned p, double simplex_peaks[4][3], double Eps[3][3], double Mu[3][3]);
-        virtual ~FiniteElementMatrix();
-        void MatrixInit(double eps[3][3], double mu[3][3]);
+    static const unsigned m_CountPeaks=4;
+    static const unsigned m_Dim=3;
+    static const unsigned m_MaxOrderFact=25;
 
-        std::vector<Bracket>& GetVectBracket() {return m_VectBracket;}
+    FiniteElementMatrix(unsigned p, double simplex_peaks[m_CountPeaks][m_Dim], double Eps[m_Dim][m_Dim],
+                        double Mu[m_Dim][m_Dim]);
+    virtual ~FiniteElementMatrix();
+    void MatrixInit();
 
-        void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
+    std::vector<Bracket>& GetVectBracket() {return m_VectBracket;}
 
-        void ShowVectBracket(std::vector<Bracket>& vect_bracket);
+    void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
+
+    void ShowVectBracket(std::vector<Bracket>& vect_bracket);
+
+    void AddRotMatrixProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim]);
 
 private:
+
         unsigned m_P;
 
         Power_t DefPowers(unsigned n,unsigned m);
@@ -33,17 +41,17 @@ private:
                                                   //при проходе по всем остальным элементам
 
         void AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                           std::vector<double> d, double M[3][3], unsigned n1, unsigned m1, unsigned n2, unsigned m2,
+                           std::vector<double> d, double M[][m_Dim], unsigned n1, unsigned m1, unsigned n2, unsigned m2,
                            std::vector<Bracket>& vect_bracket);
         std::vector<double> DefVector(unsigned ind);
         std::vector<unsigned> Def_nm(unsigned gamma, unsigned beta);
-        double m_Peaks[4][3];       //массив координат (4) вершин тетраэдра
+        double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
 
         std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b);
         double ScalarProduct(std::vector<double> a, std::vector<double> b);
 
-        double m_MatrixMu[3][3];    //Матрица тензора магнитной проницаемости
-        double m_MatrixEps[3][3];    //Матрица тензора диэлектрической проницаемости
+        double m_MatrixMu[m_Dim][m_Dim];    //Матрица тензора магнитной проницаемости
+        double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости
 
         void AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind, std::vector<Bracket>& vect_bracket);
 
@@ -51,14 +59,14 @@ private:
 
         double Integrate (Bracket_t& br);
 
-        double* m_MetrMatrix;                    //Метрическая матрица
-        double* m_EulerMatrix;                   //Матрица Эйлера
-
+        double** m_MetrMatrix;                    //Метрическая матрица
+        double** m_EulerMatrix;                   //Матрица Эйлера
+        unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Эйлера
 
         //Вычисление факториалов--------------------------------------------------------------------------------------------
         double Fact(unsigned N);
 
-        double m_ArrayFact[26];
+        double m_ArrayFact[m_MaxOrderFact+1];
 
         inline double CalcFact(unsigned N);
         //------------------------------------------------------------------------------------------------------------------

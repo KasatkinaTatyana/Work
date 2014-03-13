@@ -37,6 +37,14 @@ public:
 
     Bracket operator*(Bracket& b);
 
+    Bracket operator*(double number);
+
+    Bracket operator*=(Bracket& b);
+
+    Bracket operator+(Bracket& b);
+
+    Bracket operator+=(Bracket& b);
+
 private:
     std::vector<double> m_Gains;
     std::vector<Power_t> m_Powers;
