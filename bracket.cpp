@@ -212,6 +212,12 @@ Bracket Bracket::operator+(Bracket& b)
     }
 }
 
+Bracket Bracket::operator-(Bracket& b)
+{
+    Bracket b1=b*(-1.0);
+    return (*this+b1);
+}
+
 /*Bracket Bracket::operator+=(Bracket& b)
 {
     unsigned flag=0;

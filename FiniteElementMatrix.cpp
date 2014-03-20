@@ -47,6 +47,27 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_Count
         m_UnVect_2.push_back(r2[i]-r4[i]);
         m_UnVect_3.push_back(r3[i]-r4[i]);
     }
+
+    //Вычисление якобиана
+    m_Icob=ScalarProduct(VectProduct(m_UnVect_1,m_UnVect_2),m_UnVect_3);
+
+    //Инициализация градиентов ksi
+    m_GradKsi_1=VectProduct(m_UnVect_2,m_UnVect_3);
+    for (unsigned i=0;i<m_Dim;i++)
+        m_GradKsi_1[i]=m_GradKsi_1[i]/m_Icob;
+
+    m_GradKsi_2=VectProduct(m_UnVect_3,m_UnVect_1);
+    for (unsigned i=0;i<m_Dim;i++)
+        m_GradKsi_2[i]=m_GradKsi_2[i]/m_Icob;
+
+    m_GradKsi_3=VectProduct(m_UnVect_1,m_UnVect_2);
+    for (unsigned i=0;i<m_Dim;i++)
+        m_GradKsi_3[i]=m_GradKsi_3[i]/m_Icob;
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        m_GradKsi_4.push_back(-m_GradKsi_1[i]-m_GradKsi_2[i]-m_GradKsi_3[i]);
+    }
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -509,6 +530,38 @@ std::vector<double> FiniteElementMatrix::VectProduct(std::vector<double> a, std:
     result.push_back(a[0]*b[1]-a[1]*b[0]);
     return result;
 }
+//--------------------------------------------------------------------------------------------------------
+//---------------Векторное произведение двух векторов, элементами кот. являются скобки--------------------
+std::vector<Bracket> FiniteElementMatrix::VectBracketProduct(std::vector<Bracket> a, std::vector<Bracket> b)
+{
+    std::vector<Bracket> result;
+
+    Bracket b1=a[1]*b[2];
+    Bracket b2=a[2]*b[1];
+
+    result.push_back(b1-b2);
+
+    b1.BracketCleanUp();
+    b2.BracketCleanUp();
+
+    b1=a[2]*b[0];
+    b2=a[0]*b[2];
+
+    result.push_back(b1-b2);
+
+    b1.BracketCleanUp();
+    b2.BracketCleanUp();
+
+    b1=a[0]*b[1];
+    b2=a[1]*b[0];
+
+    result.push_back(b1-b2);
+
+    b1.BracketCleanUp();
+    b2.BracketCleanUp();
+
+    return result;
+}
 //----------------------------------------------------------------------------------------------------
 //-------------Скалярное произведение двух векторов---------------------------------------------------
 double FiniteElementMatrix::ScalarProduct(std::vector<double> a, std::vector<double> b)
@@ -672,7 +725,8 @@ double FiniteElementMatrix::Integrate (Bracket_t& br)
     return I;
 }
 //--------------------------Произведение вектора тензора и вектора в общем виде-------------------------
-Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim])
+Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
+                                                              std::vector<Bracket>& vect2, double M[][m_Dim])
 {
     //создаю скобку, которая ничего не содержит
     std::vector<double> zero_gains;
@@ -713,8 +767,141 @@ Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(Bracket vect1[m_Di
 }
 
 //----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
-std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
+void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
 {
+    std::vector<Bracket> result;
+    //Скалярная функция * градиент вектора
+    std::vector<double> vect=ProductGradKsi(n,m);
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        result.push_back(br*(vect[i]*2.0));
+    }
+
+
+    //Градиент скалярной функции * вектор
+    Bracket local_br(1);
+    std::vector<Power_t> powers, current_powers;
+    std::vector<double> gains, current_gains;
+    Power_t pw;
+    double gn;
+
+    current_powers=br.GetPowers();
+    current_gains=br.GetGains();
+
+    for (unsigned i=0;i<br.BracketSize();i++)
+    {
+        if ((current_powers[i]).p1>0)
+        {
+            //Добавление градиента ksi_1 с соответствующим коэффициентом,
+            //если текущий элемент скобки зависит от переменной ksi_1
+            for (unsigned j=0;j<m_Dim;j++)
+            {
+                pw.p1=(unsigned)(current_powers[i].p1-1);
+                pw.p2=current_powers[i].p2;
+                pw.p3=current_powers[i].p3;
+                pw.p4=current_powers[i].p4;
+
+                gn=m_GradKsi_1[j]*current_gains[i]*((double)(current_powers[i]).p1);
+
+                powers.push_back(pw);
+                gains.push_back(gn);
+
+                local_br.SetPowers(powers);
+                local_br.SetGains(gains);
+
+                powers.clear();
+                gains.clear();
+
+                result[j]=result[j]+local_br;
+            }
+        }//ksi_1
+
+        //Аналогично градиенты ksi_2, ksi_3, ksi_4
+        if ((current_powers[i]).p2>0)
+        {
+            //Добавление градиента ksi_1 с соответствующим коэффициентом,
+            //если текущий элемент скобки зависит от переменной ksi_1
+            for (unsigned j=0;j<m_Dim;j++)
+            {
+                pw.p1=current_powers[i].p1;
+                pw.p2=(unsigned)(current_powers[i].p2-1);;
+                pw.p3=current_powers[i].p3;
+                pw.p4=current_powers[i].p4;
+
+                gn=m_GradKsi_2[j]*current_gains[i]*((double)(current_powers[i]).p2);
+
+                powers.push_back(pw);
+                gains.push_back(gn);
+
+                local_br.SetPowers(powers);
+                local_br.SetGains(gains);
+
+                powers.clear();
+                gains.clear();
+
+                result[j]=result[j]+local_br;
+            }
+        }//ksi_2
+
+        if ((current_powers[i]).p3>0)
+        {
+            //Добавление градиента ksi_1 с соответствующим коэффициентом,
+            //если текущий элемент скобки зависит от переменной ksi_1
+            for (unsigned j=0;j<m_Dim;j++)
+            {
+                pw.p1=current_powers[i].p1;
+                pw.p2=current_powers[i].p2;
+                pw.p3=(unsigned)(current_powers[i].p3-1);;
+                pw.p4=current_powers[i].p4;
+
+                gn=m_GradKsi_3[j]*current_gains[i]*((double)(current_powers[i]).p3);
+
+                powers.push_back(pw);
+                gains.push_back(gn);
+
+                local_br.SetPowers(powers);
+                local_br.SetGains(gains);
+
+                powers.clear();
+                gains.clear();
+
+                result[j]=result[j]+local_br;
+            }
+        }//ksi_3
+
+        if ((current_powers[i]).p4>0)
+        {
+            //Добавление градиента ksi_1 с соответствующим коэффициентом,
+            //если текущий элемент скобки зависит от переменной ksi_1
+            for (unsigned j=0;j<m_Dim;j++)
+            {
+                pw.p1=current_powers[i].p1;
+                pw.p2=current_powers[i].p2;
+                pw.p3=current_powers[i].p3;
+                pw.p4=(unsigned)(current_powers[i].p4-1);
+
+                gn=m_GradKsi_4[j]*current_gains[i]*((double)(current_powers[i]).p4);
+
+                powers.push_back(pw);
+                gains.push_back(gn);
+
+                local_br.SetPowers(powers);
+                local_br.SetGains(gains);
+
+                powers.clear();
+                gains.clear();
+
+                result[j]=result[j]+local_br;
+            }
+        }//ksi_4
+    }
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        ((Bracket)(result[i])).ShowElements();
+    }
+
+    //return result;
 }
 //------------------------------Вычисление nabla(ksi_1)*nabla(ksi_2)----------------------------------------------
 std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned ind2)
@@ -801,5 +988,11 @@ std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned 
             result.push_back((-1.0)*m_UnVect_1[i]+m_UnVect_2[i]);
         }
     }
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        result[i]=result[i]/m_Icob;
+    }
+
     return result;
 }

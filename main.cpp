@@ -15,6 +15,7 @@ void Test_AddSilvester();
 void Test_MetrMatrix();
 void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i);
 void test_ProductGradKsi();
+void test_RotorCalc(unsigned N, unsigned p_i, double g_i);
 
 /*double Fact(unsigned N);
 double m_ArrayFact[26];
@@ -58,7 +59,8 @@ int main(int argc, char *argv[])
     //PrintFact(20);
     //Test_MetrMatrix();
     //test_GeneralVectorTensorVectorProduct(2,1,1);
-    test_ProductGradKsi();
+    //test_ProductGradKsi();
+    test_RotorCalc(2,1,1);
     return 0;
 }
 
@@ -105,8 +107,12 @@ void test_bracket(unsigned N, unsigned p_i, double g_i)
 
     Bracket bbb=b1+zero_br;
 
-    Bracket b3 = b2*10.0;
+    Bracket br_minus=b2-zero_br;
+
+    Bracket b3 = b2*(10.0*2.0);
     b3=b3+b1;
+
+
 
 
     b1.ShowElements();
@@ -375,7 +381,7 @@ void Test_MetrMatrix()
 
 void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i)
 {
-    Bracket b1(N);
+    /*Bracket b1(N);
     Bracket b2(N);
 
     std::vector<Power_t> powers, powers1;
@@ -462,7 +468,7 @@ void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i)
     Bracket b4=f.GeneralVectorTensorVectorProduct(vect1,vect2,M);
     b4.ShowElements();
 
-    //b4.ShowElements();
+    //b4.ShowElements();*/
 }
 
 void test_ProductGradKsi()
@@ -525,4 +531,176 @@ void test_ProductGradKsi()
         std::cout<< " " << vect[i];
     }
 
+}
+
+void test_RotorCalc(unsigned N, unsigned p_i, double g_i)
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3], M[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    M[0][0]=0;
+    M[0][1]=1;
+    M[0][2]=2;
+
+    M[1][0]=3;
+    M[1][1]=4;
+    M[1][2]=5;
+
+    M[2][0]=6;
+    M[2][1]=7;
+    M[2][2]=8;
+
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+
+    Bracket b1(N);
+    Bracket b2(N);
+
+    std::vector<Power_t> powers, powers1;
+    Power_t p = {p_i, p_i, p_i, p_i};
+    Power_t p1 = {2*p_i, 2*p_i, 2*p_i, 2*p_i};
+
+    for (unsigned i=0;i<N;i++)
+    {
+        powers.push_back(p);
+        powers1.push_back(p1);
+    }
+
+    b1.SetPowers(powers);
+    b2.SetPowers(powers1);
+
+    std::vector<double> gains, gains1;
+    for (unsigned i=0;i<N;i++)
+    {
+        gains.push_back(g_i);
+        gains1.push_back(g_i*2.0);
+    }
+
+    b1.SetGains(gains);
+    b2.SetGains(gains1);
+
+    //--------------------------------------------test_VectBracketProduct--------------------------------
+    powers.clear();
+    gains.clear();
+
+    std::vector<Bracket> a_left;
+    std::vector<Bracket> b_right;
+
+    Bracket brack(1);
+
+    Power_t pow1={1,0,0,0};
+    Power_t pow0={0,0,0,0};
+    Power_t pow2={0,1,0,0};
+
+    powers.push_back(pow1);
+    gains.push_back(1);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    a_left.push_back(brack);
+
+    gains.clear();
+    powers.clear();
+    brack.BracketCleanUp();
+
+    powers.push_back(pow0);
+    gains.push_back(0);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    a_left.push_back(brack);
+
+    gains.clear();
+    powers.clear();
+    brack.BracketCleanUp();
+
+    powers.push_back(pow0);
+    gains.push_back(0);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    a_left.push_back(brack);
+    //---------------------------------------------------------
+
+    powers.clear();
+    gains.clear();
+    brack.BracketCleanUp();
+
+    powers.push_back(pow0);
+    gains.push_back(0);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    b_right.push_back(brack);
+
+    powers.clear();
+    gains.clear();
+    brack.BracketCleanUp();
+
+    powers.push_back(pow2);
+    gains.push_back(1);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    b_right.push_back(brack);
+
+    powers.clear();
+    gains.clear();
+    brack.BracketCleanUp();
+
+    powers.push_back(pow0);
+    gains.push_back(0);
+
+    brack.SetGains(gains);
+    brack.SetPowers(powers);
+
+    b_right.push_back(brack);
+    //-------------------------------------------------------------------------
+    std::vector<Bracket> Brack_vect=f.VectBracketProduct(a_left,b_right);
+
+    f.RotorCalc(b1,1,3);
+
+    /*for (unsigned i=0;i<Brack_vect.size();i++)
+    {
+        ((Bracket)(Brack_vect[i])).ShowElements();
+    }*/
 }
