@@ -29,7 +29,10 @@ public:
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
-    void AddRotMatrixProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim]);
+    Bracket GeneralVectorTensorVectorProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim]);
+
+    std::vector<Bracket> RotorCalc(Bracket br, unsigned n, unsigned m);
+    std::vector<double> ProductGradKsi(unsigned ind1, unsigned ind2);
 
 private:
 
@@ -70,4 +73,14 @@ private:
 
         inline double CalcFact(unsigned N);
         //------------------------------------------------------------------------------------------------------------------
+        //градиенты барицентрических координат
+        double m_GradKsi_1[m_Dim];
+        double m_GradKsi_2[m_Dim];
+        double m_GradKsi_3[m_Dim];
+        double m_GradKsi_4[m_Dim];
+
+        //Значения унитарных векторов, направленных вдоль ребер тетраэдра
+        std::vector<double> m_UnVect_1;
+        std::vector<double> m_UnVect_2;
+        std::vector<double> m_UnVect_3;
 };

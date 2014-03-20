@@ -30,6 +30,23 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_Count
     }
     //--------------------------
     m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
+
+    //Инициализация унитарных базисных векторов
+    std::vector<double> r1, r2, r3, r4;
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        r1.push_back(m_Peaks[0][i]);
+        r2.push_back(m_Peaks[1][i]);
+        r3.push_back(m_Peaks[2][i]);
+        r4.push_back(m_Peaks[3][i]);
+    }
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        m_UnVect_1.push_back(r1[i]-r4[i]);
+        m_UnVect_2.push_back(r2[i]-r4[i]);
+        m_UnVect_3.push_back(r3[i]-r4[i]);
+    }
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -655,24 +672,134 @@ double FiniteElementMatrix::Integrate (Bracket_t& br)
     return I;
 }
 //--------------------------Произведение вектора тензора и вектора в общем виде-------------------------
-void FiniteElementMatrix::AddRotMatrixProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim])
+Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(Bracket vect1[m_Dim], Bracket vect2[m_Dim], double M[][m_Dim])
 {
-    Bracket br(1);
-    std::vector<double> gains;
-    gains.push_back(1.0);
-    br.SetGains(gains);
+    //создаю скобку, которая ничего не содержит
+    std::vector<double> zero_gains;
+    zero_gains.push_back(0.0);
+    std::vector<Power_t> zero_powers;
     Power_t p={0, 0, 0, 0};
+    zero_powers.push_back(p);
 
-    std::vector<Power_t> powers;
-    powers.push_back(p);
-    br.SetPowers(powers);
+    Bracket result(1);
+    result.SetGains(zero_gains);
+    result.SetPowers(zero_powers);
+
+    Bracket br_product=vect1[0]*(M[0][0]);
+
+    Bracket br_sum(1);
 
     for (unsigned i=0;i<m_Dim;i++)
     {
+        br_sum.SetGains(zero_gains);
+        br_sum.SetPowers(zero_powers);
+
         for (unsigned k=0;k<m_Dim;k++)
         {
+            if ((i!=0)||(k!=0))
+            {
+                br_product=vect1[k]*(M[k][i]);
+            }
+            br_sum=br_sum+br_product;
+        }
+        br_sum=br_sum*vect2[i];
 
+        result=result+br_sum;
 
+        br_sum.BracketCleanUp();
+    }
+    //AddToVectBracket(result.GetGains(),result.GetPowers(),m_VectBracket);
+    return result;
+}
+
+//----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
+std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
+{
+}
+//------------------------------Вычисление nabla(ksi_1)*nabla(ksi_2)----------------------------------------------
+std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned ind2)
+{
+    std::vector<double> result;
+
+    if((ind1==1)&&(ind2==2))
+        result = m_UnVect_3;
+
+    if((ind1==2)&&(ind2==1))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_3[i]);
         }
     }
+
+    if ((ind1==1)&&(ind2==3))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_2[i]);
+        }
+    }
+
+    if((ind1==3)&&(ind2==1))
+        result = m_UnVect_2;
+
+    if ((ind1==2)&&(ind2==3))
+        result = m_UnVect_1;
+
+    if ((ind1==3)&&(ind2==2))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_1[i]);
+        }
+    }
+
+    if ((ind1==1)&&(ind2==4))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_3[i]+m_UnVect_2[i]);
+        }
+    }
+
+    if ((ind1==4)&&(ind2==1))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back(m_UnVect_3[i]+(-1.0)*m_UnVect_2[i]);
+        }
+    }
+
+    if ((ind1==2)&&(ind2==4))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_1[i]+m_UnVect_3[i]);
+        }
+    }
+
+    if ((ind1==4)&&(ind2==2))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back(m_UnVect_1[i]+(-1.0)*m_UnVect_3[i]);
+        }
+    }
+
+    if ((ind1==3)&&(ind2==4))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back(m_UnVect_1[i]+(-1.0)*m_UnVect_2[i]);
+        }
+    }
+
+    if ((ind1==4)&&(ind2==3))
+    {
+        for (unsigned i=0;i<m_Dim;i++)
+        {
+            result.push_back((-1.0)*m_UnVect_1[i]+m_UnVect_2[i]);
+        }
+    }
+    return result;
 }

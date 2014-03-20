@@ -13,6 +13,8 @@ void Test_DefVector();
 void Test_AddVTVProduct();
 void Test_AddSilvester();
 void Test_MetrMatrix();
+void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i);
+void test_ProductGradKsi();
 
 /*double Fact(unsigned N);
 double m_ArrayFact[26];
@@ -47,7 +49,7 @@ void PrintFact(unsigned TO)
 
 int main(int argc, char *argv[])
 {
-    test_bracket(2,1,1);
+    //test_bracket(2,1,1);
     //test_vectBracket(2,1,1);
     //Test_nm();
     //Test_DefVector();
@@ -55,6 +57,8 @@ int main(int argc, char *argv[])
     //Test_AddSilvester();
     //PrintFact(20);
     //Test_MetrMatrix();
+    //test_GeneralVectorTensorVectorProduct(2,1,1);
+    test_ProductGradKsi();
     return 0;
 }
 
@@ -88,8 +92,21 @@ void test_bracket(unsigned N, unsigned p_i, double g_i)
     b1.SetGains(gains);
     b2.SetGains(gains1);
 
-    Bracket b3 = b1 + b2;
-    b1=b1+b2;
+
+    Bracket zero_br(1);
+    std::vector<double> zero_gains;
+    zero_gains.push_back(0.0);
+    std::vector<Power_t> zero_powers;
+    Power_t zero_p={0, 0, 0, 0};
+    zero_powers.push_back(zero_p);
+
+    zero_br.SetGains(zero_gains);
+    zero_br.SetPowers(zero_powers);
+
+    Bracket bbb=b1+zero_br;
+
+    Bracket b3 = b2*10.0;
+    b3=b3+b1;
 
 
     b1.ShowElements();
@@ -104,7 +121,6 @@ void test_bracket(unsigned N, unsigned p_i, double g_i)
 
     Bracket b5=b1*10.0;
 
-    double a=1.0;
 }
 
 /*void test_vectBracket(unsigned N, unsigned p_i, double g_i)
@@ -355,4 +371,158 @@ void Test_MetrMatrix()
     FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 
     f.MatrixInit();
+}
+
+void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i)
+{
+    Bracket b1(N);
+    Bracket b2(N);
+
+    std::vector<Power_t> powers, powers1;
+    Power_t p = {p_i, p_i, p_i, p_i};
+    Power_t p1 = {2*p_i, 2*p_i, 2*p_i, 2*p_i};
+
+    for (unsigned i=0;i<N;i++)
+    {
+        powers.push_back(p);
+        powers1.push_back(p1);
+    }
+
+    b1.SetPowers(powers);
+    b2.SetPowers(powers1);
+
+    std::vector<double> gains, gains1;
+    for (unsigned i=0;i<N;i++)
+    {
+        gains.push_back(g_i);
+        gains1.push_back(g_i*2.0);
+    }
+
+    b1.SetGains(gains);
+    b2.SetGains(gains1);
+
+    Bracket b3 = b2*10.0;
+
+    Bracket vect1[3]={b1, b2, b3};
+    Bracket vect2[3]={b3, b1, b2};
+
+
+
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3], M[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;                
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;                
+            }
+        }
+    }
+
+    M[0][0]=0;
+    M[0][1]=1;
+    M[0][2]=2;
+
+    M[1][0]=3;
+    M[1][1]=4;
+    M[1][2]=5;
+
+    M[2][0]=6;
+    M[2][1]=7;
+    M[2][2]=8;
+
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    Bracket b4=f.GeneralVectorTensorVectorProduct(vect1,vect2,M);
+    b4.ShowElements();
+
+    //b4.ShowElements();
+}
+
+void test_ProductGradKsi()
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3], M[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    M[0][0]=0;
+    M[0][1]=1;
+    M[0][2]=2;
+
+    M[1][0]=3;
+    M[1][1]=4;
+    M[1][2]=5;
+
+    M[2][0]=6;
+    M[2][1]=7;
+    M[2][2]=8;
+
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    std::vector<double> vect=f.ProductGradKsi(1,3);
+
+    for (unsigned i=0;i<vect.size();i++)
+    {
+        std::cout<< " " << vect[i];
+    }
+
 }

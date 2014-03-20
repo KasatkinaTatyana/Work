@@ -43,7 +43,7 @@ public:
 
     Bracket operator+(Bracket& b);
 
-    Bracket operator+=(Bracket& b);
+    //Bracket operator+=(Bracket& b);
 
 private:
     std::vector<double> m_Gains;

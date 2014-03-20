@@ -59,6 +59,7 @@ void Bracket::SetGains(std::vector<double>& gains)
     {
         m_Gains.push_back(gains[i]);
     }
+    m_N=gains.size();
 }
 
 void Bracket::SetPowers(std::vector<Power_t>& powers)
@@ -68,6 +69,7 @@ void Bracket::SetPowers(std::vector<Power_t>& powers)
     {
         m_Powers.push_back(powers[i]);
     }
+    m_N=powers.size();
 }
 
 void Bracket::ShowElements()
@@ -167,29 +169,72 @@ Bracket Bracket::operator*=(Bracket& b)
 
 Bracket Bracket::operator+(Bracket& b)
 {
-    unsigned M = b.BracketSize()+BracketSize();
-    Bracket result(M);
-
-    std::vector<double> gains=m_Gains;
-    std::vector<Power_t> powers=m_Powers;
-
-    for (unsigned i=0;i<b.BracketSize();i++)
+    //если конструкция вида 0 + скобка, то возвращается значение скобка
+    unsigned flag=0;
+    for (unsigned i=0;i<m_Gains.size();i++)
     {
-        gains.push_back((b.GetGains())[i]);
-        powers.push_back((b.GetPowers())[i]);
+        if (m_Gains[i]!=0.0)
+            flag=1;
     }
 
-    result.SetGains(gains);
-    result.SetPowers(powers);
-    return result;
+    if (flag==0)
+        return b;
+    else
+    {
+        unsigned M = BracketSize();
+
+        std::vector<double> gains=m_Gains;
+        std::vector<Power_t> powers=m_Powers;
+
+        flag=0;
+        for (unsigned i=0;i<b.BracketSize();i++)
+        {
+            if ((double)((b.GetGains())[i])!=(0.0))
+            {
+                M++;
+                flag=1;
+                gains.push_back((b.GetGains())[i]);
+                powers.push_back((b.GetPowers())[i]);
+            }
+        }
+
+        if (flag==0)
+        {
+            return (*this);
+        }
+        else
+        {
+            Bracket result(M);
+            result.SetGains(gains);
+            result.SetPowers(powers);
+            return result;
+        }
+    }
 }
 
-Bracket Bracket::operator+=(Bracket& b)
+/*Bracket Bracket::operator+=(Bracket& b)
 {
-    unsigned M = b.BracketSize()+BracketSize();
+    unsigned flag=0;
+    for (unsigned i=0;i<m_N;i++)
+    {
+        if ((double)(m_Gains[i])!=(0.0))
+        {
+            flag=1;
+        }
+    }
 
-    Bracket result(M);
+    if (flag==0)
+    {
+        return b;
+    }
+    else
+    {
+        //unsigned M = b.BracketSize()+BracketSize();
 
-    result=(*this)+b;
-    return result;
-}
+        //Bracket result(M);
+
+        //result=(*this)+b;
+        //return result;
+        return (*this)+b;
+    }
+}*/
