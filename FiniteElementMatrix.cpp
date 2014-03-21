@@ -429,58 +429,14 @@ void FiniteElementMatrix::ShowVectBracket(std::vector<Bracket>& vect_bracket)
 std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
 {
     std::vector<double> result;
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        result.push_back(0);
-    }
-
-    std::vector<double> r1, r2, r3, r4;
-
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        r1.push_back(m_Peaks[0][i]);
-        r2.push_back(m_Peaks[1][i]);
-        r3.push_back(m_Peaks[2][i]);
-        r4.push_back(m_Peaks[3][i]);
-    }
-    std::vector<double> l1, l2, l3;
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        l1.push_back(r1[i]-r4[i]);
-        l2.push_back(r2[i]-r4[i]);
-        l3.push_back(r3[i]-r4[i]);
-    }
-    double Icob;
-    Icob=ScalarProduct(VectProduct(l1,l2),l3);
-
-
     if (ind==1)
-    {
-        result=VectProduct(l2,l3);
-    }
+        result=m_GradKsi_1;
     if (ind==2)
-    {
-        return VectProduct(l3,l1);
-    }
+        result=m_GradKsi_2;
     if (ind==3)
-    {
-        return VectProduct(l1,l2);
-    }
+        result=m_GradKsi_3;
     if (ind==4)
-    {
-        std::vector<double> a,b,c;
-        a=VectProduct(l2,l3);
-        b=VectProduct(l3,l1);
-        c=VectProduct(l1,l2);
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result[i]=-a[i]-b[i]-c[i];
-        }
-    }
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        result[i]=result[i]/Icob;
-    }
+        result=m_GradKsi_4;
     return result;
 }
 //----------------------------------------------------------------------------------------------------
@@ -767,7 +723,8 @@ Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(std::vector<Bracke
 }
 
 //----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
-void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
+// n < m
+std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
 {
     std::vector<Bracket> result;
     //Скалярная функция * градиент вектора
@@ -777,9 +734,14 @@ void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
         result.push_back(br*(vect[i]*2.0));
     }
 
-
-    //Градиент скалярной функции * вектор
+    //Градиент скалярной функции
     Bracket local_br(1);
+
+    //Трехмерный вектор, состоящий из нулевых скобок
+    std::vector<Bracket> vect_nabla_phi;
+    for (unsigned i=0;i<m_Dim;i++)
+        vect_nabla_phi.push_back(local_br);
+
     std::vector<Power_t> powers, current_powers;
     std::vector<double> gains, current_gains;
     Power_t pw;
@@ -812,7 +774,7 @@ void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
                 powers.clear();
                 gains.clear();
 
-                result[j]=result[j]+local_br;
+                vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
             }
         }//ksi_1
 
@@ -839,7 +801,7 @@ void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
                 powers.clear();
                 gains.clear();
 
-                result[j]=result[j]+local_br;
+                vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
             }
         }//ksi_2
 
@@ -865,7 +827,7 @@ void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
                 powers.clear();
                 gains.clear();
 
-                result[j]=result[j]+local_br;
+                vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
             }
         }//ksi_3
 
@@ -891,17 +853,56 @@ void FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
                 powers.clear();
                 gains.clear();
 
-                result[j]=result[j]+local_br;
+                vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
             }
         }//ksi_4
-    }
+    }//vect_nabla_phi готов
+
+    pw.p1=0;
+    pw.p2=0;
+    pw.p3=0;
+    pw.p4=0;
+
+    gains.push_back(1.0);
+    local_br.SetGains(gains);
+
+    //(ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n)) = vect_ksi_nm
+    std::vector<Bracket> vect_ksi_nm;
+    std::vector<double> v_1=DefVector(m);
+    std::vector<double> v_2=DefVector(n);
+
+    LocalPowersChange(pw,n,1);
+    powers.push_back(pw);
+    local_br.SetPowers(powers);
 
     for (unsigned i=0;i<m_Dim;i++)
+        vect_ksi_nm.push_back(local_br*v_1[i]);
+
+    LocalPowersChange(pw,n,0);
+    LocalPowersChange(pw,m,1);
+
+    powers.clear();
+    powers.push_back(pw);
+    local_br.SetPowers(powers);
+
+    Bracket br_1=local_br*v_2[0];
+    vect_ksi_nm[0]=vect_ksi_nm[0]-br_1;
+    br_1=local_br*v_2[1];
+    vect_ksi_nm[1]=vect_ksi_nm[1]-br_1;
+    br_1=local_br*v_2[2];
+    vect_ksi_nm[2]=vect_ksi_nm[2]-br_1;//vect_ksi_nm
+
+    std::vector<Bracket> res_1=VectBracketProduct(vect_nabla_phi,vect_ksi_nm);
+
+    for (unsigned i=0;i<m_Dim;i++)
+        result[i]=result[i]+res_1[i];
+
+    /*for (unsigned i=0;i<m_Dim;i++)
     {
         ((Bracket)(result[i])).ShowElements();
-    }
+    }*/
 
-    //return result;
+    return result;
 }
 //------------------------------Вычисление nabla(ksi_1)*nabla(ksi_2)----------------------------------------------
 std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned ind2)

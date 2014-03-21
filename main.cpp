@@ -16,6 +16,7 @@ void Test_MetrMatrix();
 void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i);
 void test_ProductGradKsi();
 void test_RotorCalc(unsigned N, unsigned p_i, double g_i);
+void test_RotorCalc_2();
 
 /*double Fact(unsigned N);
 double m_ArrayFact[26];
@@ -60,7 +61,8 @@ int main(int argc, char *argv[])
     //Test_MetrMatrix();
     //test_GeneralVectorTensorVectorProduct(2,1,1);
     //test_ProductGradKsi();
-    test_RotorCalc(2,1,1);
+    //test_RotorCalc(2,1,1);
+    test_RotorCalc_2();
     return 0;
 }
 
@@ -703,4 +705,89 @@ void test_RotorCalc(unsigned N, unsigned p_i, double g_i)
     {
         ((Bracket)(Brack_vect[i])).ShowElements();
     }*/
+}
+
+void test_RotorCalc_2()
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3], M[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    M[0][0]=0;
+    M[0][1]=1;
+    M[0][2]=2;
+
+    M[1][0]=3;
+    M[1][1]=4;
+    M[1][2]=5;
+
+    M[2][0]=6;
+    M[2][1]=7;
+    M[2][2]=8;
+
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+
+    /*Power_t pw1={1, 0, 0, 0};
+    std::vector<Power_t> powers;
+    std::vector<double> gains;
+    powers.push_back(pw1);
+
+    Power_t pw2={0, 1, 0, 0};
+    powers.push_back(pw2);
+
+    gains.push_back(1.0);
+    gains.push_back(1.0);
+
+    Bracket br(2);
+    br.SetGains(gains);
+    br.SetPowers(powers);*/
+
+    Bracket br(1);
+    Power_t pw1={1, 1, 0, 0};
+    std::vector<Power_t> powers;
+    std::vector<double> gains;
+    powers.push_back(pw1);
+    gains.push_back(1.0);
+    br.SetGains(gains);
+    br.SetPowers(powers);
+
+    std::vector<Bracket> vect=f.RotorCalc(br,2,4);
+    for (unsigned i=0;i<vect.size();i++)
+    {
+        ((Bracket)(vect[i])).ShowElements();
+    }
 }

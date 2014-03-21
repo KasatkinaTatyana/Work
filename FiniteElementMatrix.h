@@ -31,7 +31,7 @@ public:
 
     Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double M[][m_Dim]);
 
-    void RotorCalc(Bracket br, unsigned n, unsigned m);
+    std::vector<Bracket> RotorCalc(Bracket br, unsigned n, unsigned m);
     std::vector<double> ProductGradKsi(unsigned ind1, unsigned ind2);
 
     std::vector<Bracket> VectBracketProduct(std::vector<Bracket> a, std::vector<Bracket> b);
