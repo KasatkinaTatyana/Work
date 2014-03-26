@@ -1,10 +1,11 @@
- #include "FiniteElementMatrix.h"
+#include "FiniteElementMatrix.h"
 #include "bracket.h"
 
+#include <iostream>
 #include <cstdlib>
 #include <ctime>
 
-
+using namespace std;
 
 FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_CountPeaks][m_Dim],
                                          double Eps[m_Dim][m_Dim], double Mu[m_Dim][m_Dim]) : m_P(p)
@@ -29,7 +30,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_Count
         m_ArrayFact[i]=Fact(i);
     }
     //--------------------------
-    m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
+    //m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
+
+    m_MatrixSize=(p+1)*(p+1)*(p+1)*(p+1)*6;
 
     //Инициализация унитарных базисных векторов
     std::vector<double> r1, r2, r3, r4;
@@ -115,88 +118,18 @@ Power_t FiniteElementMatrix::DefPowers(unsigned n,unsigned m)
     return powers;
 }
 
-void FiniteElementMatrix::AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                                        std::vector<double> d, double M[][m_Dim], unsigned n1,
-                                        unsigned m1, unsigned n2, unsigned m2,
-                                        std::vector<Bracket>& vect_bracket)
+void FiniteElementMatrix::findIndex(unsigned gamma, unsigned beta, unsigned order, unsigned& idxLow, unsigned& idxHigh)
 {
-    double s_a, s_b;
-    std::vector<double> M_a;
-    std::vector<double> M_b;
-    for (unsigned i=0;i<m_Dim;i++)
+    if ((gamma==order)||(beta==order))
     {
-        s_a=0; s_b=0;
-        for (unsigned j=0;j<m_Dim;j++)
-        {
-            s_a=s_a+a[j]*M[j][i];
-            s_b=s_b+b[j]*M[j][i];
-        }
-
-        M_a.push_back(s_a);
-        M_b.push_back(s_b);
+        idxLow=0;
+        idxHigh=m_P;
     }
-
-    //сначала формируем вектор коэффициентов
-
-    double s;
-    std::vector<double> gains;
-
-    //формируем вектор степеней
-
-    Power_t local_powers={0,0,0,0};
-    std::vector<Power_t> powers;
-
-    s=0;
-    for (unsigned i=0;i<m_Dim;i++)
+    else
     {
-        s=s+c[i]*M_a[i];
+        idxLow=1;
+        idxHigh=m_P+1;
     }
-    if (s!=0)
-    {
-        gains.push_back(s);
-        local_powers=DefPowers(n1,n2);
-        powers.push_back(local_powers);
-    }
-
-    //аналогично для чисел n1,m2; m1,n2; m2,m2
-    s=0;
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        s=s-d[i]*M_a[i];
-    }
-    if (s!=0)
-    {
-        gains.push_back(s);
-        local_powers=DefPowers(n1,m2);
-        powers.push_back(local_powers);
-    }
-
-    s=0;
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        s=s-c[i]*M_b[i];
-    }
-    if (s!=0)
-    {
-        gains.push_back(s);
-        local_powers=DefPowers(n2,m1);
-        powers.push_back(local_powers);
-    }
-
-    s=0;
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        s=s+d[i]*M_b[i];
-    }
-    if (s!=0)
-    {
-        gains.push_back(s);
-        local_powers=DefPowers(m1,m2);
-        powers.push_back(local_powers);
-    }
-
-    //полученную скобку добавляем в список
-    AddToVectBracket(gains, powers,vect_bracket);
 }
 
 
@@ -205,14 +138,8 @@ void FiniteElementMatrix::MatrixInit()
 {
     //Выделяю память под матрицу (метрическая и Эйлера)
 
-    m_MetrMatrix=new double*[m_MatrixSize];
-    m_EulerMatrix=new double*[m_MatrixSize];
-
-    for (unsigned i=0;i<m_MatrixSize;i++)
-    {
-        m_MetrMatrix[i]=new double [m_MatrixSize];
-        m_EulerMatrix[i]=new double [m_MatrixSize];
-    }
+    m_MetrMatrix=new double (m_MatrixSize*m_MatrixSize);
+    m_EulerMatrix=new double (m_MatrixSize*m_MatrixSize);
     //--------------------------------------------------
 
     unsigned ilow, ihigh,
@@ -225,50 +152,31 @@ void FiniteElementMatrix::MatrixInit()
     in_klow, in_khigh,
     in_llow, in_lhigh;
 
+    unsigned count_rows=0;
+    unsigned count_columns=0;
+
+    std::vector<Bracket> vect1_EigFunc;
+    std::vector<Bracket> vect2_EigFunc;
+
+    Bracket cur_bracket(1);
+    Bracket inner_bracket(1);
+
+    Bracket euler_br(1);
+    Bracket metr_br(1);
+
+    unsigned n1, m1, n2, m2;
+    std::vector<unsigned> nm1, nm2;
+
+    unsigned flag;
+
     for (unsigned gamma=1;gamma<=4;gamma++)
     {
-        for (unsigned beta = gamma;beta<=4;beta++)
+        for (unsigned beta = gamma+1;beta<=4;beta++)
         {
-            if ((gamma==1)||(beta==1))
-            {
-                ilow=0;
-                ihigh=m_P;
-            }
-            else
-            {
-                ilow=1;
-                ihigh=m_P+1;
-            }
-            if ((gamma==2)||(beta==2))
-            {
-                jlow=0;
-                jhigh=m_P;
-            }
-            else
-            {
-                jlow=1;
-                jhigh=m_P+1;
-            }
-            if ((gamma==3)||(beta==3))
-            {
-                klow=0;
-                khigh=m_P;
-            }
-            else
-            {
-                klow=1;
-                khigh=m_P+1;
-            }
-            if ((gamma==4)||(beta==4))
-            {
-                llow=0;
-                lhigh=m_P;
-            }
-            else
-            {
-                llow=1;
-                lhigh=m_P+1;
-            }
+            findIndex(gamma, beta, 1, ilow, ihigh);
+            findIndex(gamma, beta, 2, jlow, jhigh);
+            findIndex(gamma, beta, 3, klow, khigh);
+            findIndex(gamma, beta, 4, llow, lhigh);
 
             for (unsigned i=ilow;i<=ihigh;i++)
             {
@@ -276,7 +184,7 @@ void FiniteElementMatrix::MatrixInit()
                 {
                     for (unsigned k=klow;k<=khigh;k++)
                     {
-                        for (unsigned l=llow;l<lhigh;l++)
+                        for (unsigned l=llow;l<=lhigh;l++)
                         {
                             if (i+j+k+l==m_P+2)
                             {
@@ -290,7 +198,8 @@ void FiniteElementMatrix::MatrixInit()
                                 //Формирую скобку cur_bracket для текущего элемента, а именно перемножаю
                                 //скобки массива m_CurVectBracket
 
-                                Bracket cur_bracket=m_CurVectBracket[0];
+                                cur_bracket=m_CurVectBracket[0];
+
                                 for (unsigned counter=1; counter<m_CurVectBracket.size();counter++)
                                 {
                                     cur_bracket=cur_bracket*m_CurVectBracket[counter];
@@ -300,48 +209,12 @@ void FiniteElementMatrix::MatrixInit()
 
                                 for (unsigned in_gamma=1;in_gamma<=4;in_gamma++)
                                 {
-                                    for (unsigned in_beta = in_gamma;in_beta<=4;in_beta++)
-                                    {
-                                        if ((in_gamma==1)||(in_beta==1))
-                                        {
-                                            in_ilow=0;
-                                            in_ihigh=m_P;
-                                        }
-                                        else
-                                        {
-                                            in_ilow=1;
-                                            in_ihigh=m_P+1;
-                                        }
-                                        if ((in_gamma==2)||(in_beta==2))
-                                        {
-                                            in_jlow=0;
-                                            in_jhigh=m_P;
-                                        }
-                                        else
-                                        {
-                                            in_jlow=1;
-                                            in_jhigh=m_P+1;
-                                        }
-                                        if ((in_gamma==3)||(in_beta==3))
-                                        {
-                                            in_klow=0;
-                                            in_khigh=m_P;
-                                        }
-                                        else
-                                        {
-                                            in_klow=1;
-                                            in_khigh=m_P+1;
-                                        }
-                                        if ((in_gamma==4)||(in_beta==4))
-                                        {
-                                            in_llow=0;
-                                            in_lhigh=m_P;
-                                        }
-                                        else
-                                        {
-                                            in_llow=1;
-                                            in_lhigh=m_P+1;
-                                        }
+                                    for (unsigned in_beta = in_gamma+1;in_beta<=4;in_beta++)
+                                    {  
+                                        findIndex(in_gamma, in_beta, 1, in_ilow, in_ihigh);
+                                        findIndex(in_gamma, in_beta, 2, in_jlow, in_jhigh);
+                                        findIndex(in_gamma, in_beta, 3, in_klow, in_khigh);
+                                        findIndex(in_gamma, in_beta, 4, in_llow, in_lhigh);
 
                                         for (unsigned in_i=in_ilow;in_i<=in_ihigh;in_i++)
                                         {
@@ -349,48 +222,63 @@ void FiniteElementMatrix::MatrixInit()
                                             {
                                                 for (unsigned in_k=in_klow;in_k<=in_khigh;in_k++)
                                                 {
-                                                    for (unsigned in_l=in_llow;in_l<in_lhigh;in_l++)
+                                                    for (unsigned in_l=in_llow;in_l<=in_lhigh;in_l++)
                                                     {
                                                         if (in_i+in_j+in_k+in_l==m_P+2)
                                                         {
-                                                            AddToVectBracket(cur_bracket.GetGains(),
-                                                                             cur_bracket.GetPowers(),
-                                                                             m_VectBracket);
                                                             //В список будут добавляться 4 многочлена Сильвестра
-                                                            AddSilvester(in_gamma, in_beta, 1, in_i, m_VectBracket);
-                                                            AddSilvester(in_gamma, in_beta, 2, in_j, m_VectBracket);
-                                                            AddSilvester(in_gamma, in_beta, 3, in_k, m_VectBracket);
-                                                            AddSilvester(in_gamma, in_beta, 4, in_l, m_VectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 1, in_i, m_InnerVectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 2, in_j, m_InnerVectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 3, in_k, m_InnerVectBracket);
+                                                            AddSilvester(in_gamma, in_beta, 4, in_l, m_InnerVectBracket);
 
                                                             //теперь нужно добавить в список элемент свертки
-                                                            unsigned n1, m1, n2, m2;
-                                                            std::vector<double> a, b, c, d;
-                                                            std::vector<unsigned> nm1, nm2;
                                                             nm1=Def_nm(gamma,beta);
                                                             nm2=Def_nm(in_gamma,in_beta);
                                                             n1=nm1[0];
                                                             m1=nm1[1];
                                                             n2=nm2[0];
                                                             m2=nm2[1];
-                                                            a=DefVector(n1);
-                                                            b=DefVector(m1);
-                                                            c=DefVector(n2);
-                                                            d=DefVector(m2);
-                                                            AddVTVProduct(a, b, c, d, m_MatrixEps, n1, m1, n2, m2,
-                                                                          m_VectBracket);
                                                             //----------------Перемножение скобок--------------------
-                                                            Bracket finite_bracket = m_VectBracket[0];
-                                                            for (unsigned counter=1;counter<m_VectBracket.size();counter++)
+                                                            inner_bracket = m_InnerVectBracket[0];
+
+                                                            for (unsigned counter=1;counter<m_InnerVectBracket.size();counter++)
                                                             {
-                                                                finite_bracket=finite_bracket*m_VectBracket[counter];
+                                                                inner_bracket=inner_bracket*m_InnerVectBracket[counter];
                                                             }
                                                             //-------------------------------------------------------
-                                                            //----------------Интегрирование-------------------------
+                                                            //----------------Матрица Эйлера----------------------------
+                                                            vect1_EigFunc=FormVectEigFunc(cur_bracket,n1,m1);
+                                                            vect2_EigFunc=FormVectEigFunc(inner_bracket,n2,m2);
 
+                                                            euler_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixEps);
+
+                                                            *(m_EulerMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(euler_br);
+                                                            //-------------------------------------------------------------------
+                                                            vect1_EigFunc.clear();
+                                                            vect2_EigFunc.clear();
+
+                                                            if ((gamma==1)&&(beta==3)&&(in_gamma==1)&&(in_beta==2))
+                                                            {
+                                                                flag=1;
+                                                            }
+                                                            //--------------Метрическая матрица----------------------------------
+
+                                                            vect1_EigFunc=RotorCalc(cur_bracket,n1,m1);
+                                                            vect2_EigFunc=RotorCalc(inner_bracket,n2,m2);
+
+                                                            metr_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixMu);
+
+                                                            *(m_MetrMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(metr_br);
+                                                            //-------------------------------------------------------------------
+                                                            vect1_EigFunc.clear();
+                                                            vect2_EigFunc.clear();
+
+                                                            count_columns++;
                                                             //-------------------------------------------------------
                                                             //----------------Удаление скобки------------------------
-                                                            m_VectBracket.clear();
-                                                            finite_bracket.BracketCleanUp();
+                                                            m_InnerVectBracket.clear();
+                                                            inner_bracket.BracketCleanUp();
                                                             //-------------------------------------------------------
                                                         }
                                                     }//l внутрениий
@@ -402,6 +290,7 @@ void FiniteElementMatrix::MatrixInit()
 
                                 m_CurVectBracket.clear();
                                 cur_bracket.BracketCleanUp();
+                                count_rows++;
 
                             }//проверка условия (i+j+k+l==m_P+2)
                         }//l
@@ -418,13 +307,7 @@ void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vect
     vect_bracket.push_back(Bracket(gains,powers));
 }
 
-void FiniteElementMatrix::ShowVectBracket(std::vector<Bracket>& vect_bracket)
-{
-    for (unsigned i=0;i<m_VectBracket.size();i++)
-    {
-        ((Bracket)(vect_bracket.at(i))).ShowElements();
-    }
-}
+
 //-----------------------Определение вектора----------------------------------------------------------
 std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
 {
@@ -466,6 +349,11 @@ std::vector<unsigned> FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta)
         n=1;
         m=4;
     }
+    if ((gamma==2)&&(beta==4))
+    {
+        n=1;
+        m=3;
+    }
     if ((gamma==3)&&(beta==4))
     {
         n=1;
@@ -488,7 +376,7 @@ std::vector<double> FiniteElementMatrix::VectProduct(std::vector<double> a, std:
 }
 //--------------------------------------------------------------------------------------------------------
 //---------------Векторное произведение двух векторов, элементами кот. являются скобки--------------------
-std::vector<Bracket> FiniteElementMatrix::VectBracketProduct(std::vector<Bracket> a, std::vector<Bracket> b)
+std::vector<Bracket> FiniteElementMatrix::VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b)
 {
     std::vector<Bracket> result;
 
@@ -583,7 +471,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
     {
         if (ind==1)
         {
-            if (m_VectBracket.empty())
+            if (vect_bracket.empty())
             {
                 gains.push_back(1);
                 powers.push_back(local_powers);
@@ -656,14 +544,15 @@ inline double FiniteElementMatrix::CalcFact(unsigned N)
     return m_ArrayFact[N];
 }
 //--------------------------Интегрирование скобки-----------------------------------------------
-double FiniteElementMatrix::Integrate (Bracket_t& br)
+double FiniteElementMatrix::Integrate (Bracket& br)
 {
     double I=0;
-    double pow1, pow2, pow3, pow4;
+    unsigned pow1, pow2, pow3, pow4;
     std::vector<Power_t> arr_local_powers=br.GetPowers();
+    std::vector<double> gains=br.GetGains();
     Power_t local_powers;
     double i1, i2, i3, i4, i_s;
-    for (unsigned i=0;i<(br.GetGains()).size();i++)
+    for (unsigned i=0;i<gains.size();i++)
     {
 
         local_powers=arr_local_powers.at(i);
@@ -671,12 +560,12 @@ double FiniteElementMatrix::Integrate (Bracket_t& br)
         pow2=local_powers.p2;
         pow3=local_powers.p3;
         pow4=local_powers.p4;
-        i1=CalcFact(unsigned(pow1));
-        i2=CalcFact(unsigned(pow2));
-        i3=CalcFact(unsigned(pow3));
-        i4=CalcFact(unsigned(pow4));
-        i_s=CalcFact(unsigned(pow1+pow2+pow3+pow4+3));
-        I=I+(br.GetGains())[i]*i1*i2*i3*i4/i_s;
+        i1=CalcFact(pow1);
+        i2=CalcFact(pow2);
+        i3=CalcFact(pow3);
+        i4=CalcFact(pow4);
+        i_s=CalcFact(pow1+pow2+pow3+pow4+3);
+        I=I+gains[i]*i1*i2*i3*i4*6.0/i_s;
     }
     return I;
 }
@@ -724,7 +613,7 @@ Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(std::vector<Bracke
 
 //----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
 // n < m
-std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket br, unsigned n, unsigned m)
+std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, unsigned m)
 {
     std::vector<Bracket> result;
     //Скалярная функция * градиент вектора
@@ -993,6 +882,83 @@ std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned 
     for (unsigned i=0;i<m_Dim;i++)
     {
         result[i]=result[i]/m_Icob;
+    }
+
+    return result;
+}
+
+void FiniteElementMatrix::ShowMatrixs()
+{
+    std::cout << "============EulerMatrix==============" << std::endl;
+    for (unsigned i=0;i<m_MatrixSize;i++)
+    {
+        for (unsigned j=0;j<m_MatrixSize;j++)
+        {
+           std::cout<< " " << *(m_EulerMatrix+i*m_MatrixSize+j);
+
+        }
+        std::cout << std::endl;
+    }
+
+    std::cout << "============MetrMatrix==============" << std::endl;
+    for (unsigned i=0;i<m_MatrixSize;i++)
+    {
+        for (unsigned j=0;j<m_MatrixSize;j++)
+        {
+           std::cout<< " " << *(m_MetrMatrix+i*m_MatrixSize+j);
+
+        }
+        std::cout << std::endl;
+    }
+}
+
+std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned n, unsigned m)
+{
+    std::vector<Bracket> result;
+    std::vector<double> a=DefVector(m);
+    std::vector<double> b=DefVector(n);
+
+    Bracket local_br(1);
+
+    Power_t pw={0,0,0,0};
+
+    std::vector<Power_t> powers;
+    std::vector<double> gains;
+
+    LocalPowersChange(pw,n,1);
+
+    powers.push_back(pw);
+    gains.push_back(1.0);
+
+    local_br.SetGains(gains);
+    local_br.SetPowers(powers);
+
+    Bracket res_br=local_br*(a[0]);
+    result.push_back(res_br);
+
+    res_br=local_br*(a[1]);
+    result.push_back(res_br);
+
+    res_br=local_br*(a[2]);
+    result.push_back(res_br);
+
+    powers.clear();
+
+    LocalPowersChange(pw,n,0);
+    LocalPowersChange(pw,m,1);
+
+    powers.push_back(pw);
+
+    local_br.SetPowers(powers);
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        res_br=local_br*b[i];
+        result[i]=result[i]-res_br;
+    }
+
+    for (unsigned i=0;i<m_Dim;i++)
+    {
+        result[i]=result[i]*br;
     }
 
     return result;

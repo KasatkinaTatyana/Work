@@ -17,6 +17,8 @@ void test_GeneralVectorTensorVectorProduct(unsigned N, unsigned p_i, double g_i)
 void test_ProductGradKsi();
 void test_RotorCalc(unsigned N, unsigned p_i, double g_i);
 void test_RotorCalc_2();
+void test_Matrixs();
+void test_FormEigFunc();
 
 /*double Fact(unsigned N);
 double m_ArrayFact[26];
@@ -62,7 +64,9 @@ int main(int argc, char *argv[])
     //test_GeneralVectorTensorVectorProduct(2,1,1);
     //test_ProductGradKsi();
     //test_RotorCalc(2,1,1);
-    test_RotorCalc_2();
+    //test_RotorCalc_2();
+    test_Matrixs();
+    //test_FormEigFunc();
     return 0;
 }
 
@@ -790,4 +794,117 @@ void test_RotorCalc_2()
     {
         ((Bracket)(vect[i])).ShowElements();
     }
+}
+
+void test_Matrixs()
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    Eps[0][0]=0;
+    Eps[0][1]=1;
+    Eps[0][2]=2;
+
+    Eps[1][0]=3;
+    Eps[1][1]=4;
+    Eps[1][2]=5;
+
+    Eps[2][0]=6;
+    Eps[2][1]=7;
+    Eps[2][2]=8;
+
+    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+    f.MatrixInit();
+    f.ShowMatrixs();
+}
+
+void test_FormEigFunc()
+{
+    //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+
+    Bracket br(1);
+    Power_t pw1={1, 1, 0, 0};
+    std::vector<Power_t> powers;
+    std::vector<double> gains;
+    powers.push_back(pw1);
+    gains.push_back(1.0);
+    br.SetGains(gains);
+    br.SetPowers(powers);
+
+    std::vector<Bracket> vect=f.FormVectEigFunc(br,1,3);
+    for (unsigned i=0;i<vect.size();i++)
+        ((Bracket)(vect[i])).ShowElements();
 }

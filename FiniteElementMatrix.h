@@ -7,9 +7,12 @@
 #include <list>
 #include "bracket.h"
 #include <stdlib.h>
-using namespace std;
 
-typedef class Bracket Bracket_t;
+/*struct Row_t
+{
+    std::vector<double> rows;
+};*/
+
 
 class FiniteElementMatrix
 {
@@ -23,31 +26,30 @@ public:
     virtual ~FiniteElementMatrix();
     void MatrixInit();
 
-    std::vector<Bracket>& GetVectBracket() {return m_VectBracket;}
-
     void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
     Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double M[][m_Dim]);
 
-    std::vector<Bracket> RotorCalc(Bracket br, unsigned n, unsigned m);
+    std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
     std::vector<double> ProductGradKsi(unsigned ind1, unsigned ind2);
 
-    std::vector<Bracket> VectBracketProduct(std::vector<Bracket> a, std::vector<Bracket> b);
+    std::vector<Bracket> VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b);
+
+    void ShowMatrixs();
+
+    std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
 
 private:
 
         unsigned m_P;
 
         Power_t DefPowers(unsigned n,unsigned m);
-        std::vector<Bracket> m_VectBracket;       //эта скобка соответствует паре двух элементов
+        std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
         std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
                                                   //при проходе по всем остальным элементам
 
-        void AddVTVProduct(std::vector<double> a, std::vector<double> b, std::vector<double> c,
-                           std::vector<double> d, double M[][m_Dim], unsigned n1, unsigned m1, unsigned n2, unsigned m2,
-                           std::vector<Bracket>& vect_bracket);
         std::vector<double> DefVector(unsigned ind);
         std::vector<unsigned> Def_nm(unsigned gamma, unsigned beta);
         double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
@@ -62,10 +64,12 @@ private:
 
         void LocalPowersChange(Power_t& local_powers, unsigned ind,unsigned value);
 
-        double Integrate (Bracket_t& br);
+        double Integrate (Bracket& br);
 
-        double** m_MetrMatrix;                    //Метрическая матрица
-        double** m_EulerMatrix;                   //Матрица Эйлера
+        void findIndex(unsigned gamma, unsigned beta, unsigned order, unsigned& idxLow, unsigned& idxHigh);
+
+        double *m_MetrMatrix;                    //Метрическая матрица
+        double *m_EulerMatrix;                   //Матрица Эйлера
         unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Эйлера
 
         //Вычисление факториалов--------------------------------------------------------------------------------------------

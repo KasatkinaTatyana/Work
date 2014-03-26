@@ -244,3 +244,8 @@ Bracket Bracket::operator-(Bracket& b)
         return (*this)+b;
     }
 }*/
+
+Bracket& operator=(const Bracket& right)
+                  {
+
+}
