@@ -102,10 +102,10 @@ void Bracket::ShowElements()
     std::cout << "======================" << std::endl;
 }
 
-Bracket Bracket::operator*(Bracket& b)
+Bracket Bracket::operator*(const Bracket& b)
 {
-    unsigned M = b.BracketSize()*BracketSize();
-    unsigned L = b.BracketSize();
+    unsigned M = b.m_N*BracketSize();
+    unsigned L = b.m_N;
     unsigned N = BracketSize();
 
     Bracket result(M);
@@ -115,15 +115,15 @@ Bracket Bracket::operator*(Bracket& b)
 
         unsigned offset = i*L;
 
-        float Ai = m_Gains.at(i);
+        double Ai = m_Gains.at(i);
         Power_t q1 = m_Powers.at(i);
 
         for(unsigned j = 0; j < L; j++)
          {
 
-            float Bj = b.m_Gains.at(j);
+            double Bj = b.m_Gains.at(j);
 
-            float Cij = Ai * Bj;
+            double Cij = Ai * Bj;
 
             result.m_Gains[offset + j] = Cij;
 
@@ -137,37 +137,41 @@ Bracket Bracket::operator*(Bracket& b)
             q3.p4 = q1.p4+q2.p4;
 
             result.m_Powers[offset+j]=q3;
-
         }
     }
     return result;
 }
 
+
 Bracket Bracket::operator*(double number)
 {
-    Bracket result(m_N);
-
-    std::vector<double> gains;
-    for (unsigned i=0;i<m_N;i++)
+    if (number == 0.0)
     {
-        gains.push_back(m_Gains[i]*number);
+       Bracket result(1);
+       return result;
     }
-    result.SetGains(gains);
-    result.SetPowers(m_Powers);
-    return result;
+    else
+    {
+        Bracket result(m_N);
+        result.SetPowers(m_Powers);
+        std::vector<double> gains;
+
+        for (unsigned i=0;i<m_N;i++)
+        {
+            gains.push_back(m_Gains[i]*number);
+        }
+        result.SetGains(gains);
+        return result;
+    }
 }
 
-Bracket Bracket::operator*=(Bracket& b)
+Bracket& Bracket::operator*=(const Bracket& b)
 {
-    unsigned M = b.BracketSize()*BracketSize();
-
-    Bracket result(M);
-
-    result=(*this)*b;
-    return result;
+    *this=(*this)*b;
+    return *this;
 }
 
-Bracket Bracket::operator+(Bracket& b)
+Bracket Bracket::operator+(const Bracket& b)
 {
     //если конструкция вида 0 + скобка, то возвращается значение скобка
     unsigned flag=0;
@@ -181,20 +185,20 @@ Bracket Bracket::operator+(Bracket& b)
         return b;
     else
     {
-        unsigned M = BracketSize();
+        unsigned M = m_N;
 
         std::vector<double> gains=m_Gains;
         std::vector<Power_t> powers=m_Powers;
 
         flag=0;
-        for (unsigned i=0;i<b.BracketSize();i++)
+        for (unsigned i=0;i<b.m_N;i++)
         {
-            if ((double)((b.GetGains())[i])!=(0.0))
+            if ((double)((b.m_Gains)[i])!=(0.0))
             {
                 M++;
                 flag=1;
-                gains.push_back((b.GetGains())[i]);
-                powers.push_back((b.GetPowers())[i]);
+                gains.push_back((b.m_Gains)[i]);
+                powers.push_back((b.m_Powers)[i]);
             }
         }
 
@@ -212,40 +216,99 @@ Bracket Bracket::operator+(Bracket& b)
     }
 }
 
-Bracket Bracket::operator-(Bracket& b)
+Bracket Bracket::operator-(const Bracket& b)
 {
-    Bracket b1=b*(-1.0);
-    return (*this+b1);
-}
-
-/*Bracket Bracket::operator+=(Bracket& b)
-{
+    std::vector<double> gains;
+    std::vector<Power_t> powers;
+    //если конструкция вида 0 - скобка, то возвращается значение скобка b
     unsigned flag=0;
-    for (unsigned i=0;i<m_N;i++)
+    for (unsigned i=0;i<m_Gains.size();i++)
     {
-        if ((double)(m_Gains[i])!=(0.0))
-        {
+        if (m_Gains[i]!=0.0)
             flag=1;
-        }
     }
 
     if (flag==0)
     {
-        return b;
+        unsigned M=0;
+        for (unsigned i=0;i<b.m_N;i++)
+        {
+            if ((double)((b.m_Gains)[i])!=(0.0))
+            {
+                M++;
+                gains.push_back((-1.0)*(b.m_Gains)[i]);
+                powers.push_back(b.m_Powers[i]);
+            }
+        }
+        Bracket result(M);
+        result.SetGains(gains);
+        result.SetPowers(powers);
+        return result;
     }
     else
     {
-        //unsigned M = b.BracketSize()+BracketSize();
+        unsigned M = m_N;
 
-        //Bracket result(M);
+        std::vector<double> gains=m_Gains;
+        std::vector<Power_t> powers=m_Powers;
 
-        //result=(*this)+b;
-        //return result;
-        return (*this)+b;
+        flag=0;
+        for (unsigned i=0;i<b.m_N;i++)
+        {
+            if ((double)((b.m_Gains)[i])!=(0.0))
+            {
+                M++;
+                flag=1;
+                gains.push_back((-1.0)*(b.m_Gains)[i]);
+                powers.push_back((b.m_Powers)[i]);
+            }
+        }
+
+        if (flag==0)
+        {
+            return (*this);
+        }
+        else
+        {
+            Bracket result(M);
+            result.SetGains(gains);
+            result.SetPowers(powers);
+            return result;
+        }
     }
-}*/
-
-Bracket& operator=(const Bracket& right)
-                  {
-
 }
+
+Bracket Bracket::operator+=(const Bracket& b)
+{
+    *this=*this+b;
+    return *this;
+}
+
+Bracket& Bracket::operator=(const Bracket& right)
+{
+    if (this == &right)
+    {
+        return *this;
+    }
+
+    m_Powers.clear();
+    m_Gains.clear();
+    for (unsigned i=0;i<(right.m_Gains).size();i++)
+        m_Gains.push_back((right.m_Gains)[i]);
+
+    for (unsigned i=0;i<(right.m_Powers).size();i++)
+        m_Powers.push_back((right.m_Powers)[i]);
+    m_N=right.m_N;
+
+    return *this;
+}
+
+/*Bracket::Bracket(Bracket& obj)
+{
+    for (unsigned i=0;i<(obj.m_Gains).size();i++)
+        this->m_Gains.push_back((obj.m_Gains)[i]);
+
+    for (unsigned i=0;i<(obj.m_Powers).size();i++)
+        this->m_Powers.push_back((obj.m_Powers)[i]);
+    this->m_N=obj.m_N;
+}*/

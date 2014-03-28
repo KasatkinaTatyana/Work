@@ -17,8 +17,10 @@ TEMPLATE = app
 
 SOURCES += main.cpp \
     bracket.cpp \
-    FiniteElementMatrix.cpp
+    FiniteElementMatrix.cpp \
+    VectFunctions.cpp
 
 HEADERS += \
     bracket.h \
-    FiniteElementMatrix.h
+    FiniteElementMatrix.h \
+    VectFunctions.h

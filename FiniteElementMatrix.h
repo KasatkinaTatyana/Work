@@ -30,12 +30,7 @@ public:
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
-    Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double M[][m_Dim]);
-
     std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
-    std::vector<double> ProductGradKsi(unsigned ind1, unsigned ind2);
-
-    std::vector<Bracket> VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b);
 
     void ShowMatrixs();
 
@@ -53,9 +48,6 @@ private:
         std::vector<double> DefVector(unsigned ind);
         std::vector<unsigned> Def_nm(unsigned gamma, unsigned beta);
         double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
-
-        std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b);
-        double ScalarProduct(std::vector<double> a, std::vector<double> b);
 
         double m_MatrixMu[m_Dim][m_Dim];    //Матрица тензора магнитной проницаемости
         double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости

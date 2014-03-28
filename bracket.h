@@ -19,7 +19,8 @@ class Bracket
 public:
     Bracket(unsigned N = 0);
     Bracket(std::vector<double>& gains, std::vector<Power_t>& powers);
-    Bracket(void);
+
+    //Bracket(Bracket& obj);
 
     virtual ~Bracket();
     void BracketInit(unsigned N);
@@ -35,17 +36,17 @@ public:
 
     void ShowElements();
 
-    Bracket operator*(Bracket& b);
+    Bracket operator*(const Bracket& b);
 
     Bracket operator*(double number);
 
-    Bracket operator*=(Bracket& b);
+    Bracket& operator*=(const Bracket& b);
 
-    Bracket operator+(Bracket& b);
+    Bracket operator+(const Bracket& b);
 
-    //Bracket operator+=(Bracket& b);
+    Bracket operator+=(const Bracket& b);
 
-    Bracket operator-(Bracket& b);
+    Bracket operator-(const Bracket& b);
 
     Bracket& operator=(const Bracket& right);
 

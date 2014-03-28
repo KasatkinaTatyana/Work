@@ -1,6 +1,8 @@
 #include "FiniteElementMatrix.h"
 #include "bracket.h"
 
+#include "VectFunctions.cpp"
+
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
@@ -365,55 +367,7 @@ std::vector<unsigned> FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta)
 }
 //возвращает вектор, vect[0]=n, vect[1]=m; n<m;
 //----------------------------------------------------------------------------------------------------
-//----------------Векторное произведение двух векторов------------------------------------------------
-std::vector<double> FiniteElementMatrix::VectProduct(std::vector<double> a, std::vector<double> b)
-{
-    std::vector<double> result;
-    result.push_back(a[1]*b[2]-a[2]*b[1]);
-    result.push_back(a[2]*b[0]-a[0]*b[2]);
-    result.push_back(a[0]*b[1]-a[1]*b[0]);
-    return result;
-}
-//--------------------------------------------------------------------------------------------------------
-//---------------Векторное произведение двух векторов, элементами кот. являются скобки--------------------
-std::vector<Bracket> FiniteElementMatrix::VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b)
-{
-    std::vector<Bracket> result;
 
-    Bracket b1=a[1]*b[2];
-    Bracket b2=a[2]*b[1];
-
-    result.push_back(b1-b2);
-
-    b1.BracketCleanUp();
-    b2.BracketCleanUp();
-
-    b1=a[2]*b[0];
-    b2=a[0]*b[2];
-
-    result.push_back(b1-b2);
-
-    b1.BracketCleanUp();
-    b2.BracketCleanUp();
-
-    b1=a[0]*b[1];
-    b2=a[1]*b[0];
-
-    result.push_back(b1-b2);
-
-    b1.BracketCleanUp();
-    b2.BracketCleanUp();
-
-    return result;
-}
-//----------------------------------------------------------------------------------------------------
-//-------------Скалярное произведение двух векторов---------------------------------------------------
-double FiniteElementMatrix::ScalarProduct(std::vector<double> a, std::vector<double> b)
-{
-    double result;
-    result=a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
-    return result;
-}
 //----------------------------------------------------------------------------------------------------
 //-------------Добавление многочлена Сильвестра-------------------------------------------------------
 //--ind - индекс (i, j, k или l);
@@ -569,47 +523,6 @@ double FiniteElementMatrix::Integrate (Bracket& br)
     }
     return I;
 }
-//--------------------------Произведение вектора тензора и вектора в общем виде-------------------------
-Bracket FiniteElementMatrix::GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
-                                                              std::vector<Bracket>& vect2, double M[][m_Dim])
-{
-    //создаю скобку, которая ничего не содержит
-    std::vector<double> zero_gains;
-    zero_gains.push_back(0.0);
-    std::vector<Power_t> zero_powers;
-    Power_t p={0, 0, 0, 0};
-    zero_powers.push_back(p);
-
-    Bracket result(1);
-    result.SetGains(zero_gains);
-    result.SetPowers(zero_powers);
-
-    Bracket br_product=vect1[0]*(M[0][0]);
-
-    Bracket br_sum(1);
-
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        br_sum.SetGains(zero_gains);
-        br_sum.SetPowers(zero_powers);
-
-        for (unsigned k=0;k<m_Dim;k++)
-        {
-            if ((i!=0)||(k!=0))
-            {
-                br_product=vect1[k]*(M[k][i]);
-            }
-            br_sum=br_sum+br_product;
-        }
-        br_sum=br_sum*vect2[i];
-
-        result=result+br_sum;
-
-        br_sum.BracketCleanUp();
-    }
-    //AddToVectBracket(result.GetGains(),result.GetPowers(),m_VectBracket);
-    return result;
-}
 
 //----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
 // n < m
@@ -617,7 +530,9 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 {
     std::vector<Bracket> result;
     //Скалярная функция * градиент вектора
-    std::vector<double> vect=ProductGradKsi(n,m);
+    std::vector<double> a=DefVector(n);
+    std::vector<double> b=DefVector(m);
+    std::vector<double> vect=VectProduct(a,b);
     for (unsigned i=0;i<m_Dim;i++)
     {
         result.push_back(br*(vect[i]*2.0));
@@ -790,99 +705,6 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
     {
         ((Bracket)(result[i])).ShowElements();
     }*/
-
-    return result;
-}
-//------------------------------Вычисление nabla(ksi_1)*nabla(ksi_2)----------------------------------------------
-std::vector<double> FiniteElementMatrix::ProductGradKsi(unsigned ind1, unsigned ind2)
-{
-    std::vector<double> result;
-
-    if((ind1==1)&&(ind2==2))
-        result = m_UnVect_3;
-
-    if((ind1==2)&&(ind2==1))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_3[i]);
-        }
-    }
-
-    if ((ind1==1)&&(ind2==3))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_2[i]);
-        }
-    }
-
-    if((ind1==3)&&(ind2==1))
-        result = m_UnVect_2;
-
-    if ((ind1==2)&&(ind2==3))
-        result = m_UnVect_1;
-
-    if ((ind1==3)&&(ind2==2))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_1[i]);
-        }
-    }
-
-    if ((ind1==1)&&(ind2==4))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_3[i]+m_UnVect_2[i]);
-        }
-    }
-
-    if ((ind1==4)&&(ind2==1))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back(m_UnVect_3[i]+(-1.0)*m_UnVect_2[i]);
-        }
-    }
-
-    if ((ind1==2)&&(ind2==4))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_1[i]+m_UnVect_3[i]);
-        }
-    }
-
-    if ((ind1==4)&&(ind2==2))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back(m_UnVect_1[i]+(-1.0)*m_UnVect_3[i]);
-        }
-    }
-
-    if ((ind1==3)&&(ind2==4))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back(m_UnVect_1[i]+(-1.0)*m_UnVect_2[i]);
-        }
-    }
-
-    if ((ind1==4)&&(ind2==3))
-    {
-        for (unsigned i=0;i<m_Dim;i++)
-        {
-            result.push_back((-1.0)*m_UnVect_1[i]+m_UnVect_2[i]);
-        }
-    }
-
-    for (unsigned i=0;i<m_Dim;i++)
-    {
-        result[i]=result[i]/m_Icob;
-    }
 
     return result;
 }
