@@ -3,7 +3,6 @@
 
 #include <vector>
 
-
 struct _Power {
     int p1;
     int p2;
@@ -48,7 +47,7 @@ public:
 
     Bracket operator-(const Bracket& b);
 
-    Bracket& operator=(const Bracket& right);
+    //Bracket& operator=(const Bracket& right);
 
 private:
     std::vector<double> m_Gains;

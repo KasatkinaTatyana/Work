@@ -1,18 +1,11 @@
 #ifndef FINITEELEMENTMATRIX_H
 #define FINITEELEMENTMATRIX_H
 
-#endif // FINITEELEMENTMATRIX_H
+#include "bracket.h"
 
 #include <vector>
 #include <list>
-#include "bracket.h"
 #include <stdlib.h>
-
-/*struct Row_t
-{
-    std::vector<double> rows;
-};*/
-
 
 class FiniteElementMatrix
 {
@@ -46,7 +39,7 @@ private:
                                                   //при проходе по всем остальным элементам
 
         std::vector<double> DefVector(unsigned ind);
-        std::vector<unsigned> Def_nm(unsigned gamma, unsigned beta);
+        void Def_nm(unsigned gamma, unsigned beta, std::vector<unsigned>& vect);
         double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
 
         double m_MatrixMu[m_Dim][m_Dim];    //ћатрица тензора магнитной проницаемости
@@ -85,3 +78,5 @@ private:
         //якобиан замены координат
         double m_Icob;
 };
+
+#endif // FINITEELEMENTMATRIX_H

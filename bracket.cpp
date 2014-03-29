@@ -240,10 +240,17 @@ Bracket Bracket::operator-(const Bracket& b)
                 powers.push_back(b.m_Powers[i]);
             }
         }
-        Bracket result(M);
-        result.SetGains(gains);
-        result.SetPowers(powers);
-        return result;
+        if (M == 0)
+        {
+            return (*this);
+        }
+        else
+        {
+            Bracket result(M);
+            result.SetGains(gains);
+            result.SetPowers(powers);
+            return result;
+        }
     }
     else
     {
@@ -283,7 +290,7 @@ Bracket Bracket::operator+=(const Bracket& b)
     *this=*this+b;
     return *this;
 }
-
+/*
 Bracket& Bracket::operator=(const Bracket& right)
 {
     if (this == &right)
@@ -302,7 +309,7 @@ Bracket& Bracket::operator=(const Bracket& right)
 
     return *this;
 }
-
+*/
 /*Bracket::Bracket(Bracket& obj)
 {
     for (unsigned i=0;i<(obj.m_Gains).size();i++)

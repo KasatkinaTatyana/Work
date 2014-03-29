@@ -1,7 +1,6 @@
 #include "FiniteElementMatrix.h"
 #include "bracket.h"
-
-#include "VectFunctions.cpp"
+#include "VectFunctions.h"
 
 #include <iostream>
 #include <cstdlib>
@@ -9,8 +8,11 @@
 
 using namespace std;
 
-FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_CountPeaks][m_Dim],
-                                         double Eps[m_Dim][m_Dim], double Mu[m_Dim][m_Dim]) : m_P(p)
+FiniteElementMatrix::FiniteElementMatrix(unsigned p,
+                                         double simplex_peaks[m_CountPeaks][m_Dim],
+                                         double Eps[m_Dim][m_Dim],
+                                         double Mu[m_Dim][m_Dim])
+                                             : m_P(p)
 {
     for (unsigned i=0;i<m_CountPeaks;i++)
     {
@@ -73,11 +75,14 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,double simplex_peaks[m_Count
     {
         m_GradKsi_4.push_back(-m_GradKsi_1[i]-m_GradKsi_2[i]-m_GradKsi_3[i]);
     }
+
+    MatrixInit();
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
 {
-
+    delete[] m_MetrMatrix;
+    delete[] m_EulerMatrix;
 }
 
 Power_t FiniteElementMatrix::DefPowers(unsigned n,unsigned m)
@@ -140,8 +145,9 @@ void FiniteElementMatrix::MatrixInit()
 {
     //Выделяю память под матрицу (метрическая и Эйлера)
 
-    m_MetrMatrix=new double (m_MatrixSize*m_MatrixSize);
-    m_EulerMatrix=new double (m_MatrixSize*m_MatrixSize);
+    m_MetrMatrix = new double[m_MatrixSize*m_MatrixSize];
+    m_EulerMatrix = new double[m_MatrixSize*m_MatrixSize];
+
     //--------------------------------------------------
 
     unsigned ilow, ihigh,
@@ -157,8 +163,8 @@ void FiniteElementMatrix::MatrixInit()
     unsigned count_rows=0;
     unsigned count_columns=0;
 
-    std::vector<Bracket> vect1_EigFunc;
-    std::vector<Bracket> vect2_EigFunc;
+    vector<Bracket> vect1_EigFunc;
+    vector<Bracket> vect2_EigFunc;
 
     Bracket cur_bracket(1);
     Bracket inner_bracket(1);
@@ -167,7 +173,7 @@ void FiniteElementMatrix::MatrixInit()
     Bracket metr_br(1);
 
     unsigned n1, m1, n2, m2;
-    std::vector<unsigned> nm1, nm2;
+    vector<unsigned> nm1, nm2;
 
     unsigned flag;
 
@@ -188,7 +194,7 @@ void FiniteElementMatrix::MatrixInit()
                     {
                         for (unsigned l=llow;l<=lhigh;l++)
                         {
-                            if (i+j+k+l==m_P+2)
+                            if ((i+j+k+l)==(m_P+2))
                             {
                                 //В список добавляются 4 многочлена Сильвестра
                                 //В список будут добавляться 4 многочлена Сильвестра
@@ -226,7 +232,7 @@ void FiniteElementMatrix::MatrixInit()
                                                 {
                                                     for (unsigned in_l=in_llow;in_l<=in_lhigh;in_l++)
                                                     {
-                                                        if (in_i+in_j+in_k+in_l==m_P+2)
+                                                        if ((in_i+in_j+in_k+in_l)==(m_P+2))
                                                         {
                                                             //В список будут добавляться 4 многочлена Сильвестра
                                                             AddSilvester(in_gamma, in_beta, 1, in_i, m_InnerVectBracket);
@@ -235,12 +241,14 @@ void FiniteElementMatrix::MatrixInit()
                                                             AddSilvester(in_gamma, in_beta, 4, in_l, m_InnerVectBracket);
 
                                                             //теперь нужно добавить в список элемент свертки
-                                                            nm1=Def_nm(gamma,beta);
-                                                            nm2=Def_nm(in_gamma,in_beta);
+                                                            Def_nm(gamma,beta,nm1);
+                                                            Def_nm(in_gamma,in_beta,nm2);
                                                             n1=nm1[0];
                                                             m1=nm1[1];
                                                             n2=nm2[0];
                                                             m2=nm2[1];
+                                                            nm1.clear();
+                                                            nm2.clear();
                                                             //----------------Перемножение скобок--------------------
                                                             inner_bracket = m_InnerVectBracket[0];
 
@@ -255,12 +263,17 @@ void FiniteElementMatrix::MatrixInit()
 
                                                             euler_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixEps);
 
+                                                            std::cout<< " " << count_rows;
+                                                            std::cout<< " " << count_columns;
+                                                            std::cout << std::endl;
+
                                                             *(m_EulerMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(euler_br);
+
                                                             //-------------------------------------------------------------------
                                                             vect1_EigFunc.clear();
                                                             vect2_EigFunc.clear();
 
-                                                            if ((gamma==1)&&(beta==3)&&(in_gamma==1)&&(in_beta==2))
+                                                            if ((count_rows==5)&&(count_columns==5))
                                                             {
                                                                 flag=1;
                                                             }
@@ -272,6 +285,7 @@ void FiniteElementMatrix::MatrixInit()
                                                             metr_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixMu);
 
                                                             *(m_MetrMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(metr_br);
+
                                                             //-------------------------------------------------------------------
                                                             vect1_EigFunc.clear();
                                                             vect2_EigFunc.clear();
@@ -293,7 +307,7 @@ void FiniteElementMatrix::MatrixInit()
                                 m_CurVectBracket.clear();
                                 cur_bracket.BracketCleanUp();
                                 count_rows++;
-
+                                count_columns=0;
                             }//проверка условия (i+j+k+l==m_P+2)
                         }//l
                     }//k
@@ -313,24 +327,21 @@ void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vect
 //-----------------------Определение вектора----------------------------------------------------------
 std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
 {
-    std::vector<double> result;
-    if (ind==1)
-        result=m_GradKsi_1;
-    if (ind==2)
-        result=m_GradKsi_2;
-    if (ind==3)
-        result=m_GradKsi_3;
-    if (ind==4)
-        result=m_GradKsi_4;
-    return result;
+    switch(ind) {
+    case 1: return m_GradKsi_1;
+    case 2: return m_GradKsi_2;
+    case 3: return m_GradKsi_3;
+    case 4: return m_GradKsi_4;
+    default: return m_GradKsi_1;
+    }
+
 }
 //----------------------------------------------------------------------------------------------------
 
 //-----------------Определение индексов n, m если заданы gamma и beta---------------------------------
-std::vector<unsigned> FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta)
+void FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 {
     unsigned n, m;
-    std::vector<unsigned> vect;
     if ((gamma==1)&&(beta==2))
     {
         n=3;
@@ -363,7 +374,6 @@ std::vector<unsigned> FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta)
     }
     vect.push_back(n);
     vect.push_back(m);
-    return vect;
 }
 //возвращает вектор, vect[0]=n, vect[1]=m; n<m;
 //----------------------------------------------------------------------------------------------------
@@ -530,9 +540,10 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 {
     std::vector<Bracket> result;
     //Скалярная функция * градиент вектора
-    std::vector<double> a=DefVector(n);
-    std::vector<double> b=DefVector(m);
-    std::vector<double> vect=VectProduct(a,b);
+
+    std::vector<double> v_1=DefVector(m);
+    std::vector<double> v_2=DefVector(n);
+    std::vector<double> vect=VectProduct(v_2,v_1);
     for (unsigned i=0;i<m_Dim;i++)
     {
         result.push_back(br*(vect[i]*2.0));
@@ -672,8 +683,6 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 
     //(ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n)) = vect_ksi_nm
     std::vector<Bracket> vect_ksi_nm;
-    std::vector<double> v_1=DefVector(m);
-    std::vector<double> v_2=DefVector(n);
 
     LocalPowersChange(pw,n,1);
     powers.push_back(pw);
@@ -696,15 +705,16 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
     br_1=local_br*v_2[2];
     vect_ksi_nm[2]=vect_ksi_nm[2]-br_1;//vect_ksi_nm
 
-    std::vector<Bracket> res_1=VectBracketProduct(vect_nabla_phi,vect_ksi_nm);
+    std::vector<Bracket> res_1;
+    VectBracketProduct(vect_nabla_phi,vect_ksi_nm,res_1);
 
     for (unsigned i=0;i<m_Dim;i++)
         result[i]=result[i]+res_1[i];
 
-    /*for (unsigned i=0;i<m_Dim;i++)
+    for (unsigned i=0;i<m_Dim;i++)
     {
         ((Bracket)(result[i])).ShowElements();
-    }*/
+    }
 
     return result;
 }
@@ -716,7 +726,7 @@ void FiniteElementMatrix::ShowMatrixs()
     {
         for (unsigned j=0;j<m_MatrixSize;j++)
         {
-           std::cout<< " " << *(m_EulerMatrix+i*m_MatrixSize+j);
+            std::cout<< " " << *(m_EulerMatrix+i*m_MatrixSize+j);
 
         }
         std::cout << std::endl;
@@ -727,7 +737,7 @@ void FiniteElementMatrix::ShowMatrixs()
     {
         for (unsigned j=0;j<m_MatrixSize;j++)
         {
-           std::cout<< " " << *(m_MetrMatrix+i*m_MatrixSize+j);
+            std::cout<< " " << *(m_MetrMatrix+i*m_MatrixSize+j);
 
         }
         std::cout << std::endl;

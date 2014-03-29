@@ -1,11 +1,9 @@
+#include "bracket.h"
+#include "FiniteElementMatrix.h"
+#include "VectFunctions.h"
+
 #include <QtCore/QCoreApplication>
 #include <iostream>
-
-#include "bracket.h"
-
-#include "FiniteElementMatrix.h"
-
-#include "VectFunctions.h"
 
 using namespace std;
 
@@ -735,7 +733,7 @@ void test_RotorCalc_2()
 
     FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 
-    Power_t pw1={1, 0, 0, 0};
+    /*Power_t pw1={1, 0, 0, 0};
     std::vector<Power_t> powers;
     std::vector<double> gains;
     powers.push_back(pw1);
@@ -748,18 +746,18 @@ void test_RotorCalc_2()
 
     Bracket br(2);
     br.SetGains(gains);
-    br.SetPowers(powers);
+    br.SetPowers(powers);*/
 
-    /*Bracket br(1);
+    Bracket br(1);
     Power_t pw1={1, 1, 0, 0};
     std::vector<Power_t> powers;
     std::vector<double> gains;
     powers.push_back(pw1);
     gains.push_back(1.0);
     br.SetGains(gains);
-    br.SetPowers(powers);*/
+    br.SetPowers(powers);
 
-    std::vector<Bracket> vect=f.RotorCalc(br,1,3);
+    std::vector<Bracket> vect=f.RotorCalc(br,2,4);
     for (unsigned i=0;i<vect.size();i++)
     {
         ((Bracket)(vect[i])).ShowElements();
@@ -819,7 +817,6 @@ void test_Matrixs()
     Eps[2][2]=8;
 
     FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
-    f.MatrixInit();
     f.ShowMatrixs();
 }
 

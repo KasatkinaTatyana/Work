@@ -16,11 +16,11 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
+    VectFunctions.cpp \
     bracket.cpp \
-    FiniteElementMatrix.cpp \
-    VectFunctions.cpp
+    FiniteElementMatrix.cpp
 
 HEADERS += \
+    VectFunctions.h \
     bracket.h \
-    FiniteElementMatrix.h \
-    VectFunctions.h
+    FiniteElementMatrix.h
