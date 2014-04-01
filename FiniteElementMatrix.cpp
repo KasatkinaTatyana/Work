@@ -77,6 +77,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,
     }
 
     MatrixInit();
+    ShowMatrixs();
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -163,8 +164,15 @@ void FiniteElementMatrix::MatrixInit()
     unsigned count_rows=0;
     unsigned count_columns=0;
 
-    vector<Bracket> vect1_EigFunc;
-    vector<Bracket> vect2_EigFunc;
+    vector<Bracket> vectCur_EigFunc;
+    vector<Bracket> vectIn_EigFunc;
+
+    std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
+                                              //при проходе по всем остальным элементам
+    std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
+
+    vector<Bracket> vectCur_RotEigFunc;
+    vector<Bracket> vectIn_RotEigFunc;
 
     Bracket cur_bracket(1);
     Bracket inner_bracket(1);
@@ -213,6 +221,13 @@ void FiniteElementMatrix::MatrixInit()
                                     cur_bracket=cur_bracket*m_CurVectBracket[counter];
                                 }
 
+                                Def_nm(gamma,beta,nm1);
+                                n1=nm1[0];
+                                m1=nm1[1];
+
+                                vectCur_EigFunc=FormVectEigFunc(cur_bracket,n1,m1);
+                                vectCur_RotEigFunc=RotorCalc(cur_bracket,n1,m1);
+
                                 //теперь запускаю внутрение циклы
 
                                 for (unsigned in_gamma=1;in_gamma<=4;in_gamma++)
@@ -241,13 +256,11 @@ void FiniteElementMatrix::MatrixInit()
                                                             AddSilvester(in_gamma, in_beta, 4, in_l, m_InnerVectBracket);
 
                                                             //теперь нужно добавить в список элемент свертки
-                                                            Def_nm(gamma,beta,nm1);
+
                                                             Def_nm(in_gamma,in_beta,nm2);
-                                                            n1=nm1[0];
-                                                            m1=nm1[1];
                                                             n2=nm2[0];
                                                             m2=nm2[1];
-                                                            nm1.clear();
+
                                                             nm2.clear();
                                                             //----------------Перемножение скобок--------------------
                                                             inner_bracket = m_InnerVectBracket[0];
@@ -258,37 +271,38 @@ void FiniteElementMatrix::MatrixInit()
                                                             }
                                                             //-------------------------------------------------------
                                                             //----------------Матрица Эйлера----------------------------
-                                                            vect1_EigFunc=FormVectEigFunc(cur_bracket,n1,m1);
-                                                            vect2_EigFunc=FormVectEigFunc(inner_bracket,n2,m2);
 
-                                                            euler_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixEps);
+                                                            vectIn_EigFunc=FormVectEigFunc(inner_bracket,n2,m2);
 
-                                                            std::cout<< " " << count_rows;
-                                                            std::cout<< " " << count_columns;
+                                                            euler_br=GeneralVectorTensorVectorProduct(vectCur_EigFunc,vectIn_EigFunc,m_MatrixEps);
+
+                                                            std::cout<< " Rows = " << count_rows;
+                                                            std::cout<< " Columns = " << count_columns;
+                                                            std::cout << std::endl;
+
+                                                            std::cout<< " Euler_matr = " << Integrate(euler_br);
                                                             std::cout << std::endl;
 
                                                             *(m_EulerMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(euler_br);
 
                                                             //-------------------------------------------------------------------
-                                                            vect1_EigFunc.clear();
-                                                            vect2_EigFunc.clear();
 
-                                                            if ((count_rows==5)&&(count_columns==5))
+                                                            vectIn_EigFunc.clear();
+
+                                                            /*if ((count_rows==5)&&(count_columns==5))
                                                             {
                                                                 flag=1;
-                                                            }
+                                                            }*/
                                                             //--------------Метрическая матрица----------------------------------
+                                                            vectIn_RotEigFunc=RotorCalc(inner_bracket,n2,m2);
 
-                                                            vect1_EigFunc=RotorCalc(cur_bracket,n1,m1);
-                                                            vect2_EigFunc=RotorCalc(inner_bracket,n2,m2);
-
-                                                            metr_br=GeneralVectorTensorVectorProduct(vect1_EigFunc,vect2_EigFunc,m_MatrixMu);
+                                                            metr_br=GeneralVectorTensorVectorProduct(vectCur_RotEigFunc,vectIn_RotEigFunc,m_MatrixMu);
 
                                                             *(m_MetrMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(metr_br);
 
                                                             //-------------------------------------------------------------------
-                                                            vect1_EigFunc.clear();
-                                                            vect2_EigFunc.clear();
+
+                                                            vectIn_RotEigFunc.clear();
 
                                                             count_columns++;
                                                             //-------------------------------------------------------
@@ -304,6 +318,9 @@ void FiniteElementMatrix::MatrixInit()
                                     }//beta внутренний
                                 }//gamma внутренний
 
+                                nm1.clear();
+                                vectCur_EigFunc.clear();
+                                vectCur_RotEigFunc.clear();
                                 m_CurVectBracket.clear();
                                 cur_bracket.BracketCleanUp();
                                 count_rows++;
@@ -408,9 +425,9 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
         else
         {
             double g;
-            for (unsigned s=0;s<=ind-1;s++)
+            for (int s=0;s<=ind-1;s++)
             {
-                g=(m_P+2.0)/(s+1.0);
+                g=(m_P+0.0)/(s+1.0);
                 if (g!=0)
                 {
                     gains.push_back(g);
@@ -428,6 +445,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 
                 AddToVectBracket(gains,powers,vect_bracket);
                 gains.clear();
+                powers.clear();
             }
         }
     }
@@ -445,16 +463,17 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
         else
         {
             double g;
-            for (unsigned s=0;s<=ind-1;s++)
+            for (int s=0;s<=ind-2;s++)
             {
-                g=(m_P+2.0)/(s+1.0);
+                g=(m_P+0.0)/(s+1.0)/(s+1.0);
                 if (g!=0)
                 {
                     gains.push_back(g);
                     LocalPowersChange(local_powers,numb,1);
                     powers.push_back(local_powers);
                 }
-                g=(-s-1.0)/(s+1.0);
+
+                g=(-s-1.0)/(s+1.0)/(s+1.0);
                 if (g!=0)
                 {
                     gains.push_back(g);
@@ -464,6 +483,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 
                 AddToVectBracket(gains,powers,vect_bracket);
                 gains.clear();
+                powers.clear();
             }
         }
     }
@@ -711,10 +731,10 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
     for (unsigned i=0;i<m_Dim;i++)
         result[i]=result[i]+res_1[i];
 
-    for (unsigned i=0;i<m_Dim;i++)
+    /*for (unsigned i=0;i<m_Dim;i++)
     {
         ((Bracket)(result[i])).ShowElements();
-    }
+    }*/
 
     return result;
 }

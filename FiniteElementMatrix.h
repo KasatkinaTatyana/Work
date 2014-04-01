@@ -34,9 +34,6 @@ private:
         unsigned m_P;
 
         Power_t DefPowers(unsigned n,unsigned m);
-        std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
-        std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
-                                                  //при проходе по всем остальным элементам
 
         std::vector<double> DefVector(unsigned ind);
         void Def_nm(unsigned gamma, unsigned beta, std::vector<unsigned>& vect);

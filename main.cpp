@@ -816,8 +816,8 @@ void test_Matrixs()
     Eps[2][1]=7;
     Eps[2][2]=8;
 
-    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
-    f.ShowMatrixs();
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    //f.ShowMatrixs();
 }
 
 void test_FormEigFunc()
