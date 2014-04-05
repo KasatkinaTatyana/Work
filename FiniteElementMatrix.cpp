@@ -36,7 +36,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,
     //--------------------------
     //m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
 
-    m_MatrixSize=(p+1)*(p+1)*(p+1)*(p+1)*6;
+    m_MatrixSize=6*(p+1)+6*p*(p+1)+p*(p*p-1);
 
     //Инициализация унитарных базисных векторов
     std::vector<double> r1, r2, r3, r4;
@@ -183,8 +183,6 @@ void FiniteElementMatrix::MatrixInit()
     unsigned n1, m1, n2, m2;
     vector<unsigned> nm1, nm2;
 
-    unsigned flag;
-
     for (unsigned gamma=1;gamma<=4;gamma++)
     {
         for (unsigned beta = gamma+1;beta<=4;beta++)
@@ -289,10 +287,6 @@ void FiniteElementMatrix::MatrixInit()
 
                                                             vectIn_EigFunc.clear();
 
-                                                            /*if ((count_rows==5)&&(count_columns==5))
-                                                            {
-                                                                flag=1;
-                                                            }*/
                                                             //--------------Метрическая матрица----------------------------------
                                                             vectIn_RotEigFunc=RotorCalc(inner_bracket,n2,m2);
 
@@ -425,7 +419,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
         else
         {
             double g;
-            for (int s=0;s<=ind-1;s++)
+            for (unsigned s=0;s<=ind-1;s++)
             {
                 g=(m_P+0.0)/(s+1.0);
                 if (g!=0)
@@ -435,7 +429,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
                     powers.push_back(local_powers);
                 }
 
-                g=(-s+0.0)/(s+1.0);
+                g=(-1.*s)/(s+1.0);
                 if (g!=0)
                 {
                     gains.push_back(g);
@@ -463,7 +457,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
         else
         {
             double g;
-            for (int s=0;s<=ind-2;s++)
+            for (unsigned s=0;s<=ind-2;s++)
             {
                 g=(m_P+0.0)/(s+1.0)/(s+1.0);
                 if (g!=0)
@@ -473,7 +467,7 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
                     powers.push_back(local_powers);
                 }
 
-                g=(-s-1.0)/(s+1.0)/(s+1.0);
+                g=(-1.*s-1.0)/(s+1.0)/(s+1.0);
                 if (g!=0)
                 {
                     gains.push_back(g);

@@ -2,7 +2,9 @@
 #include "FiniteElementMatrix.h"
 #include "VectFunctions.h"
 
+#ifdef _QTGUI_
 #include <QtCore/QCoreApplication>
+#endif
 #include <iostream>
 
 using namespace std;
