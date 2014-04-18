@@ -3,6 +3,7 @@
 #include "VectFunctions.h"
 #include "BracketFunctions.h"
 
+
 #ifdef _QTGUI_
 #include <QtCore/QCoreApplication>
 #endif

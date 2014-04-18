@@ -1,3 +1,4 @@
+
 #include "bracket.h"
 #include "BracketFunctions.h"
 
@@ -58,16 +59,16 @@ void LocalPowersChange(Power_t& local_powers, unsigned ind, unsigned value)
 //--------------------------------------------------------------------------------------------
 //------»сходна€ скобка упрощаетс€: сортируетс€ по возрастанию степеней, удал€ютс€ слагаемые
 //------с нулевыми коэффициентами, коэффициенты при одинаковых степен€х суммируютс€-----------
-bool comparefun(GainsPowers_t x, GainsPowers_t y)
+bool comparefun(GainsPowers x, GainsPowers y)
 {
 	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) > (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
 }
 
-bool equality(GainsPowers_t x, GainsPowers_t y)
+bool equality(GainsPowers x, GainsPowers y)
 {
 	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) == (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
 }
-bool cond(GainsPowers_t x)
+bool cond(GainsPowers x)
 {
 	return (x.g==0.0);
 }
@@ -75,8 +76,8 @@ void SimplifyBracket(Bracket& br)
 {
 	vector<double> gains=br.GetGains();
 	vector<Power_t> powers=br.GetPowers();
-	vector<GainsPowers_t> GP;
-	GainsPowers_t unit_gp={0, 0, 0, 0, 0};
+	vector<GainsPowers> GP;
+	GainsPowers unit_gp(0.0, 0, 0, 0, 0);
 	for (unsigned i=0;i<br.BracketSize();i++)
 	{
 		unit_gp.g=gains[i];
@@ -124,10 +125,10 @@ void SimplifyBracket(Bracket& br)
 		GP[position].g=s;
 	}
 	//удаление слагаемых с нулевыми коэффициентами
-	vector<GainsPowers_t>::iterator new_end;
+	vector<GainsPowers>::iterator new_end;
 	new_end=remove_if(GP.begin(),GP.end(),cond);
 	GP.erase(new_end, GP.end());
 	
-//	copy(GP.begin(),GP.end(),ostream_iterator<int> (cout," "));
+	copy(GP.begin(),GP.end(),ostream_iterator<int> (cout," "));
 	cout << "!";
 }
