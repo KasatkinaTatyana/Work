@@ -1,11 +1,15 @@
 #include "bracket.h"
 #include "FiniteElementMatrix.h"
 #include "VectFunctions.h"
+#include "BracketFunctions.h"
 
 #ifdef _QTGUI_
 #include <QtCore/QCoreApplication>
 #endif
 #include <iostream>
+#include <algorithm>
+#include <iterator>
+
 
 using namespace std;
 
@@ -22,35 +26,12 @@ void test_RotorCalc_2();
 void test_Matrixs();
 void test_FormEigFunc();
 void test_assignment(unsigned N, unsigned p_i, double g_i);
-
-/*double Fact(unsigned N);
-double m_ArrayFact[26];
-
-inline double CalcFact(unsigned N)
-{
-    return m_ArrayFact[N];
-}
-
-double Fact(unsigned N)
-{
-    double f = 1.0;
-
-    for (unsigned i=0;i<N;i++)
-    {
-        f *= (i+1);
-    }
-
-    return f;
-}
-
-void PrintFact(unsigned TO)
-{
-    for (unsigned i=0;i<TO+1;i++)
-    {
-        cout<<i<<": "<<Fact(i)<<endl;
-    }
-}*/
-
+void test_VectBracketValue(unsigned N, unsigned p_i, double g_i);
+void test_MultNumber();
+void test_SumVector();
+void test_NumericalVectorTensorVectorProduct();
+void test_NumericalIntegration();
+void test_simplify(unsigned N, unsigned p_i, double g_i);
 
 //------------------------------------------------------------------
 
@@ -68,10 +49,17 @@ int main(int argc, char *argv[])
     //test_ProductGradKsi();
     //test_RotorCalc(2,1,1);
     //test_RotorCalc_2();
-    test_Matrixs();
+    //test_Matrixs();
     //test_FormEigFunc();
     //test_assignment(2,1,1);
     //test_Bracket_2(2,1,1);
+	//test_VectBracketValue(2,1,1);
+	//test_MultNumber();
+	//test_SumVector();
+	//test_NumericalVectorTensorVectorProduct();
+	//test_NumericalIntegration();
+	test_simplify(2,1,1);
+	system("pause");
     return 0;
 }
 
@@ -818,7 +806,7 @@ void test_Matrixs()
     Eps[2][1]=7;
     Eps[2][2]=8;
 
-    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
     //f.ShowMatrixs();
 }
 
@@ -910,5 +898,302 @@ void test_assignment(unsigned N, unsigned p_i, double g_i)
 
     b2=b1;
     b2.ShowElements();
+}
+
+/*void test_VectBracketValue(unsigned N, unsigned p_i, double g_i)
+{
+	Bracket b1(N);
+    Bracket b2(N);
+
+    std::vector<Power_t> powers, powers1;
+    Power_t p = {p_i, p_i, p_i, p_i};
+    Power_t p1 = {2*p_i, 2*p_i, 2*p_i, 2*p_i};
+
+    for (unsigned i=0;i<N;i++)
+    {
+        powers.push_back(p);
+        powers1.push_back(p1);
+    }
+
+    b1.SetPowers(powers);
+    b2.SetPowers(powers1);
+
+	std::vector<double> gains, gains1;
+    for (unsigned i=0;i<N;i++)
+    {
+        gains.push_back(g_i);
+        gains1.push_back(g_i*2.0);
+    }
+
+	b1.SetGains(gains);
+    b2.SetGains(gains1);
+
+	 //Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+
+    Bracket br(1);
+    Power_t pw1={1, 0, 0, 1};
+	powers.clear();
+	gains.clear();
+    
+    powers.push_back(pw1);
+    gains.push_back(1.0);
+    br.SetGains(gains);
+    br.SetPowers(powers);
+
+	std::vector<Bracket> VB;
+	VB.push_back(b1);
+	VB.push_back(b2);
+	VB.push_back(br);
+
+	std::vector<double> vect;
+
+	f.VectBracketValue(VB,vect,1.0,2.0,3.0);
+	std::cout<< " " << vect[0];
+
+    std::cout << std::endl;
+}*/
+
+void test_MultNumber()
+{
+	std::vector<double> a;
+	a.push_back(1);
+	a.push_back(2);
+	a.push_back(3);
+	
+	MultNumber(a,5.0);
+
+	std::cout << a[0] << std::endl;
+	std::cout << a[1] << std::endl;
+	std::cout << a[2] << std::endl;
+
+	copy(a.begin(),a.end(),ostream_iterator<int> (cout, " "));
+
+	system("pause");
+}
+
+void test_SumVector()
+{
+	std::vector<double> a, b;
+	a.push_back(1);
+	a.push_back(2);
+	a.push_back(3);
+	
+	b.push_back(10);
+	b.push_back(20);
+	b.push_back(30);
+	SumVector(a,b);
+	std::cout << a[0] << std::endl;
+	std::cout << a[1] << std::endl;
+	std::cout << a[2] << std::endl;
+
+	system("pause");
+}
+
+void test_NumericalVectorTensorVectorProduct()
+{
+	double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+	std::vector<double> a, b;
+	a.push_back(1);
+	a.push_back(2);
+	a.push_back(3);
+	
+	b.push_back(1);
+	b.push_back(1);
+	b.push_back(1);
+
+	double prod=NumericalVectorTensorVectorProduct(a,b,Mu);
+
+	std::cout << prod << std::endl;
+	system("pause");
+}
+
+void test_NumericalIntegration()
+{
+	//Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+
+    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+
+	std::vector<Power_t> powers;
+	std::vector<double> gains;
+    Bracket br(1);
+    Power_t pw1={1, 0, 0, 1};
+	powers.clear();
+	gains.clear();
+    
+    powers.push_back(pw1);
+    gains.push_back(1.0);
+    br.SetGains(gains);
+    br.SetPowers(powers);
+
+	std::vector<Bracket> VB;
+	VB.push_back(br);
+
+	powers.clear();
+	//gains.clear();
+	br.BracketCleanUp();
+
+	pw1.p1=0;
+	pw1.p2=1;
+	pw1.p4=0;
+
+	powers.push_back(pw1);
+
+	br.SetGains(gains);
+	br.SetPowers(powers);
+	VB.push_back(br);
+
+	br.BracketCleanUp();
+	powers.clear();
+	pw1.p2=0;
+	pw1.p3=2;
+	powers.push_back(pw1);
+
+	br.SetGains(gains);
+	br.SetPowers(powers);
+	VB.push_back(br);
+
+	std::vector<double> num_vect;
+	f.NumIntegration(VB,num_vect);
+
+	std::cout << num_vect[0] << std::endl;
+	std::cout << num_vect[1] << std::endl;
+	std::cout << num_vect[2] << std::endl;
+
+	system("pause");
+}
+
+void test_simplify(unsigned N, unsigned p_i, double g_i)
+{
+	Bracket b1(N);
+    Bracket b2(N);
+
+    std::vector<Power_t> powers, powers1;
+    Power_t p = {p_i, p_i, p_i, p_i};
+    Power_t p1 = {2*p_i, 2*p_i, 2*p_i, 2*p_i};
+
+    for (unsigned i=0;i<N;i++)
+    {
+        powers.push_back(p);
+        powers1.push_back(p1);
+    }
+
+    std::vector<double> gains, gains1;
+    for (unsigned i=0;i<N;i++)
+    {
+        gains.push_back(g_i);
+        gains1.push_back(g_i*2.0);
+    }
+
+	gains.push_back(0.0);
+	p.p1=1;
+	p.p2=2;
+	p.p3=0;
+	p.p4=0;
+	powers.push_back(p);
+
+	gains.push_back(5.0);
+	powers.push_back(p1);
+
+	gains.push_back(g_i*2.0);
+	powers.push_back(p1);
+
+    b1.SetGains(gains);
+    b2.SetGains(gains1);
+
+	b1.SetPowers(powers);
+    b2.SetPowers(powers1);
+
+	SimplifyBracket(b1);
 }
 

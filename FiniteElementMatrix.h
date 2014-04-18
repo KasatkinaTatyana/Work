@@ -13,11 +13,15 @@ public:
     static const unsigned m_CountPeaks=4;
     static const unsigned m_Dim=3;
     static const unsigned m_MaxOrderFact=25;
+	static const unsigned m_QuadOrder=15;            //Порядок квадратурных формул
+	//static const unsigned m_QuadOrder=2;
 
     FiniteElementMatrix(unsigned p, double simplex_peaks[m_CountPeaks][m_Dim], double Eps[m_Dim][m_Dim],
                         double Mu[m_Dim][m_Dim]);
     virtual ~FiniteElementMatrix();
     void MatrixInit();
+
+	void NumMatrixInit();    //Формирование метрической матрицы и матрицы Эйлера с использованием численного интегрирования
 
     void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
 
@@ -29,11 +33,11 @@ public:
 
     std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
 
+	void NumIntegration(std::vector<Bracket>& vect_br, std::vector<double>& result);
+
 private:
 
         unsigned m_P;
-
-        Power_t DefPowers(unsigned n,unsigned m);
 
         std::vector<double> DefVector(unsigned ind);
         void Def_nm(unsigned gamma, unsigned beta, std::vector<unsigned>& vect);
@@ -43,8 +47,6 @@ private:
         double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости
 
         void AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind, std::vector<Bracket>& vect_bracket);
-
-        void LocalPowersChange(Power_t& local_powers, unsigned ind,unsigned value);
 
         double Integrate (Bracket& br);
 
@@ -74,6 +76,11 @@ private:
 
         //Якобиан замены координат
         double m_Icob;
+
+		//-----------------------------------------------------------------------------------------------------------------
+		//Массивы корней полиномов Лежандра и весов для численного интегрирования
+		std::vector<double> m_Weights;
+		std::vector<double> m_Roots;
 };
 
 #endif // FINITEELEMENTMATRIX_H

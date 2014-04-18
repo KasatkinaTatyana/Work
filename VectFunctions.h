@@ -12,4 +12,10 @@ void VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b, std::v
 double ScalarProduct(std::vector<double> a, std::vector<double> b);
 Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double M[][3]);
 
+void MultNumber(std::vector<double>& vect, double number);
+void SumVector(std::vector<double>& sum,const std::vector<double> added);
+
+double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
+                                          std::vector<double>& vect2, double M[][3]);
+
 #endif // VECTFUNCTIONS_H

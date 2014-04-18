@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
+#include <iostream>
 
 using namespace std;
 
@@ -93,4 +94,45 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
         br_sum.BracketCleanUp();
     }
     return result;
+}
+
+//„исловой вектор vect умножаетс€ на число number
+void MultNumber(std::vector<double>& vect, double number)
+{
+	for (unsigned i=0; i<vect.size();i++)
+	{
+		vect[i]=vect[i]*number;
+	}
+}
+
+//---------------------------------  числовому вектору sum прибавл€етс€ вектор added----------------------------------------
+void SumVector(std::vector<double>& sum,const std::vector<double> added)
+{
+	if ((sum.size())==(added.size()))
+		for (unsigned i=0; i<sum.size();i++)
+		{
+			sum[i]=sum[i]+added[i];
+		}
+	else
+		std::cout << "–азмерности векторов не совпадают!" << std::endl;
+}
+
+//-----------------------------ѕроизведение числового вектора, матрицы и числового вектора------------------------------------
+double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
+                                          std::vector<double>& vect2, double M[][3])
+{
+	unsigned m_Dim=3;
+	double s;
+	double result=0.0;
+
+	for (unsigned k=0;k<m_Dim;k++)
+	{
+		s=0.0;
+		for (unsigned i=0;i<m_Dim;i++)
+		{
+			s+=M[i][k]*vect1[i];
+		}
+		result+=s*vect2[k];
+	}
+	return result;
 }
