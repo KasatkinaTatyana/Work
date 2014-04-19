@@ -1,16 +1,27 @@
 #include "bracket.h"
+#include "BracketFunctions.h"
 
 #include <iostream>
+#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <cstdlib>
+#include <ctime>
+
+#include <math.h>
+
+
+using namespace std;
 
 Bracket::Bracket(unsigned N) : m_N(N)
 {
     BracketInit(N);
 }
 
-Bracket::Bracket(std::vector<double>& gains, std::vector<Power_t>& powers)
+/*Bracket::Bracket(std::vector<double>& gains, std::vector<Power_t>& powers)
 {
     BracketInit(gains, powers);
-}
+}*/
 
 Bracket::~Bracket()
 {
@@ -25,15 +36,13 @@ void Bracket::BracketInit(unsigned N)
     }
     for (unsigned i=0;i<m_N;i++)
     {
-        m_Gains.push_back(0);
+        GainPower_t GP = {0.0, 0, 0, 0, 0};
 
-        Power_t powers = {0,0,0,0};
-
-        m_Powers.push_back(powers);
+        m_Terms.push_back(GP);
     }
 }
 
-void Bracket::BracketInit(std::vector<double>& gains, std::vector<Power_t>& powers)
+/*void Bracket::BracketInit(std::vector<double>& gains, std::vector<Power_t>& powers)
 {
     unsigned N=gains.size();
     m_N=N;
@@ -43,33 +52,98 @@ void Bracket::BracketInit(std::vector<double>& gains, std::vector<Power_t>& powe
 
         m_Powers.push_back(powers[i]);
     }
-
-}
+}*/
 
 void Bracket::BracketCleanUp()
 {
-    m_Gains.clear();
-    m_Powers.clear();
+    m_Terms.clear();
+}
+
+std::vector<double> Bracket::GetGains()
+{
+	std::vector<double> gains(m_N);
+	for (unsigned i=0;i<m_N;i++)
+		gains[i]=m_Terms[i].g;
+	return gains;
+}
+
+std::vector<Power_t> Bracket::GetPowers()
+{
+	vector<Power_t> powers(m_N);
+	Power_t pw={0, 0, 0, 0};
+	for (unsigned i=0;i<m_N;i++)
+	{
+		powers[i].p1=m_Terms[i].p1;
+		powers[i].p2=m_Terms[i].p2;
+		powers[i].p3=m_Terms[i].p3;
+		powers[i].p4=m_Terms[i].p4;
+	}
+	return powers;
 }
 
 void Bracket::SetGains(std::vector<double>& gains)
 {
-    m_Gains.clear();
-    for (unsigned i=0;i<gains.size();i++)
-    {
-        m_Gains.push_back(gains[i]);
-    }
-    m_N=gains.size();
+	unsigned N=gains.size();
+	if (N == m_N)
+		for (unsigned i=0;i<N;i++)
+		{
+			m_Terms[i].g=gains[i];
+		}
+	else
+	{
+		m_Terms.clear();
+		GainPower_t term={0.0, 0, 0, 0, 0};
+		for (unsigned i=0;i<N;i++)
+		{
+			term.g=gains[i];
+			m_Terms.push_back(term);
+		}
+		m_N=N;
+	}
+}
+
+std::vector<GainPower_t> Bracket::GetTerms()
+{
+	std::vector<GainPower_t> result;
+	//copy(m_Terms.begin(),m_Terms.end(),result.begin());
+	for (unsigned i=0;i<m_N;i++)
+		result.push_back(m_Terms.at(i));
+	return result;
+}
+
+void Bracket::SetTerms(std::vector<GainPower_t>& terms)
+{
+	m_N=terms.size();
+	m_Terms.clear();
+	for (unsigned i=0;i<m_N;i++)
+		m_Terms.push_back(terms.at(i));
 }
 
 void Bracket::SetPowers(std::vector<Power_t>& powers)
 {
-    m_Powers.clear();
-    for (unsigned i=0;i<powers.size();i++)
-    {
-        m_Powers.push_back(powers[i]);
-    }
-    m_N=powers.size();
+    unsigned N=powers.size();
+	if (N == m_N)
+		for (unsigned i=0;i<N;i++)
+		{
+			m_Terms[i].p1=powers[i].p1;
+			m_Terms[i].p2=powers[i].p2;
+			m_Terms[i].p3=powers[i].p3;
+			m_Terms[i].p4=powers[i].p4;
+		}
+	else
+	{
+		m_Terms.clear();
+		GainPower_t term={0.0, 0, 0, 0, 0};
+		for (unsigned i=0;i<N;i++)
+		{
+			term.p1=powers[i].p1;
+			term.p2=powers[i].p2;
+			term.p3=powers[i].p3;
+			term.p4=powers[i].p4;
+			m_Terms.push_back(term);
+		}
+		m_N=N;
+	}
 }
 
 void Bracket::ShowElements()
@@ -77,68 +151,52 @@ void Bracket::ShowElements()
     std::cout << "======================" << std::endl;
     std::cout << "m_N = " << m_N << std::endl;
 
-    std::cout << "m_Gains: "<<std::endl;
-    for(unsigned i=0;i<m_N;i++)
-    {
-        if((i%8) == 0) {
-            std::cout<< std::endl;
-        }
-        std::cout<< " " << m_Gains[i];
-    }
-    std::cout<< std::endl;
+	std::cout << "m_Terms = " << std::endl;
 
-    std::cout << "m_Powers: "<<std::endl;
-    for(unsigned i=0;i<m_N;i++)
-    {
-        if((i%2) == 0) {
-            std::cout<< std::endl;
-        }
-        std::cout<<" {"<<m_Powers[i].p1<<", ";
-        std::cout<<m_Powers[i].p2<<", ";
-        std::cout<<m_Powers[i].p3<<", ";
-        std::cout<<m_Powers[i].p4<<"} ";
-    }
-    std::cout<< std::endl;
+	for (unsigned i=0;i<m_N;i++)
+	{
+		std::cout << "  gain = "<< m_Terms.at(i).g  << "   ";
+		std::cout << "  powers = "<< m_Terms.at(i).p1 << "   ";
+		std::cout << "  "<< m_Terms.at(i).p2 << "   ";
+		std::cout << "  "<< m_Terms.at(i).p3 << "   ";
+		std::cout << "  "<< m_Terms.at(i).p4 << "   " << std::endl;
+	}
     std::cout << "======================" << std::endl;
 }
 
 Bracket Bracket::operator*(const Bracket& b)
 {
-    unsigned M = b.m_N*BracketSize();
+    unsigned M = b.m_N*m_N;
     unsigned L = b.m_N;
-    unsigned N = BracketSize();
+    unsigned N = m_N;
 
     Bracket result(M);
 
+	unsigned offset;
+	double Ai, Bj, Cij;
+
     for(unsigned i = 0; i < N; i++)
     {
+        offset = i*L;
 
-        unsigned offset = i*L;
-
-        double Ai = m_Gains.at(i);
-        Power_t q1 = m_Powers.at(i);
+        Ai = m_Terms.at(i).g;
 
         for(unsigned j = 0; j < L; j++)
          {
 
-            double Bj = b.m_Gains.at(j);
+            Bj = b.m_Terms.at(j).g;
 
-            double Cij = Ai * Bj;
+            Cij = Ai * Bj;
 
-            result.m_Gains[offset + j] = Cij;
-
-            Power_t q2 = b.m_Powers.at(j);
-
-            Power_t q3 = {0,0,0,0};
-
-            q3.p1 = q1.p1+q2.p1;
-            q3.p2 = q1.p2+q2.p2;
-            q3.p3 = q1.p3+q2.p3;
-            q3.p4 = q1.p4+q2.p4;
-
-            result.m_Powers[offset+j]=q3;
+			result.m_Terms.at(offset+j).g=Cij;
+			result.m_Terms.at(offset+j).p1=m_Terms.at(i).p1+b.m_Terms.at(j).p1;
+			result.m_Terms.at(offset+j).p2=m_Terms.at(i).p2+b.m_Terms.at(j).p2;
+			result.m_Terms.at(offset+j).p3=m_Terms.at(i).p3+b.m_Terms.at(j).p3;
+			result.m_Terms.at(offset+j).p4=m_Terms.at(i).p4+b.m_Terms.at(j).p4;
         }
     }
+
+	SimplifyBracket(result);
     return result;
 }
 
@@ -152,15 +210,11 @@ Bracket Bracket::operator*(double number)
     }
     else
     {
-        Bracket result(m_N);
-        result.SetPowers(m_Powers);
-        std::vector<double> gains;
-
+        Bracket result = *this;
         for (unsigned i=0;i<m_N;i++)
-        {
-            gains.push_back(m_Gains[i]*number);
-        }
-        result.SetGains(gains);
+			result.m_Terms.at(i).g *= number;
+
+		SimplifyBracket(result);
         return result;
     }
 }
@@ -173,143 +227,54 @@ Bracket& Bracket::operator*=(const Bracket& b)
 
 Bracket Bracket::operator+(const Bracket& b)
 {
-    //если конструкция вида 0 + скобка, то возвращается значение скобка
-    unsigned flag=0;
-    for (unsigned i=0;i<m_Gains.size();i++)
-    {
-        if (m_Gains[i]!=0.0)
-            flag=1;
-    }
+	Bracket result = *this;
+	for (unsigned i=0;i<b.m_N;i++)
+		result.m_Terms.push_back(b.m_Terms.at(i));
 
-    if (flag==0)
-        return b;
-    else
-    {
-        unsigned M = m_N;
+	result.m_N=m_N+b.m_N;
 
-        std::vector<double> gains=m_Gains;
-        std::vector<Power_t> powers=m_Powers;
-
-        flag=0;
-        for (unsigned i=0;i<b.m_N;i++)
-        {
-            if ((double)((b.m_Gains)[i])!=(0.0))
-            {
-                M++;
-                flag=1;
-                gains.push_back((b.m_Gains)[i]);
-                powers.push_back((b.m_Powers)[i]);
-            }
-        }
-
-        if (flag==0)
-        {
-            return (*this);
-        }
-        else
-        {
-            Bracket result(M);
-            result.SetGains(gains);
-            result.SetPowers(powers);
-            return result;
-        }
-    }
+	SimplifyBracket(result);
+	return result;
 }
 
 Bracket Bracket::operator-(const Bracket& b)
 {
-    std::vector<double> gains;
-    std::vector<Power_t> powers;
-    //если конструкция вида 0 - скобка, то возвращается значение скобка b
-    unsigned flag=0;
-    for (unsigned i=0;i<m_Gains.size();i++)
-    {
-        if (m_Gains[i]!=0.0)
-            flag=1;
-    }
+    Bracket result = b;
+	result = result*(-1.0);
 
-    if (flag==0)
-    {
-        unsigned M=0;
-        for (unsigned i=0;i<b.m_N;i++)
-        {
-            if ((double)((b.m_Gains)[i])!=(0.0))
-            {
-                M++;
-                gains.push_back((-1.0)*(b.m_Gains)[i]);
-                powers.push_back(b.m_Powers[i]);
-            }
-        }
-        if (M == 0)
-        {
-            return (*this);
-        }
-        else
-        {
-            Bracket result(M);
-            result.SetGains(gains);
-            result.SetPowers(powers);
-            return result;
-        }
-    }
-    else
-    {
-        unsigned M = m_N;
+	for (unsigned i=0;i<m_N;i++)
+		result.m_Terms.push_back(m_Terms.at(i));
 
-        std::vector<double> gains=m_Gains;
-        std::vector<Power_t> powers=m_Powers;
+	result.m_N=m_N+b.m_N;
 
-        flag=0;
-        for (unsigned i=0;i<b.m_N;i++)
-        {
-            if ((double)((b.m_Gains)[i])!=(0.0))
-            {
-                M++;
-                flag=1;
-                gains.push_back((-1.0)*(b.m_Gains)[i]);
-                powers.push_back((b.m_Powers)[i]);
-            }
-        }
-
-        if (flag==0)
-        {
-            return (*this);
-        }
-        else
-        {
-            Bracket result(M);
-            result.SetGains(gains);
-            result.SetPowers(powers);
-            return result;
-        }
-    }
+	SimplifyBracket(result);
+	return result;
 }
 
-Bracket Bracket::operator+=(const Bracket& b)
+Bracket& Bracket::operator+=(const Bracket& b)
 {
     *this=*this+b;
     return *this;
 }
-/*
+
 Bracket& Bracket::operator=(const Bracket& right)
 {
     if (this == &right)
     {
         return *this;
     }
+	else
+	{
+		m_N=right.m_N;
 
-    m_Powers.clear();
-    m_Gains.clear();
-    for (unsigned i=0;i<(right.m_Gains).size();i++)
-        m_Gains.push_back((right.m_Gains)[i]);
+		m_Terms.clear();
+		for (unsigned i=0;i<right.m_N;i++)
+			m_Terms.push_back(right.m_Terms.at(i));
 
-    for (unsigned i=0;i<(right.m_Powers).size();i++)
-        m_Powers.push_back((right.m_Powers)[i]);
-    m_N=right.m_N;
-
-    return *this;
+		return *this;
+	}
 }
-*/
+
 /*Bracket::Bracket(Bracket& obj)
 {
     for (unsigned i=0;i<(obj.m_Gains).size();i++)

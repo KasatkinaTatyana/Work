@@ -59,34 +59,23 @@ void LocalPowersChange(Power_t& local_powers, unsigned ind, unsigned value)
 //--------------------------------------------------------------------------------------------
 //------»сходна€ скобка упрощаетс€: сортируетс€ по возрастанию степеней, удал€ютс€ слагаемые
 //------с нулевыми коэффициентами, коэффициенты при одинаковых степен€х суммируютс€-----------
-bool comparefun(GainsPowers x, GainsPowers y)
+bool comparefun(GainPower_t x, GainPower_t y)
 {
 	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) > (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
 }
 
-bool equality(GainsPowers x, GainsPowers y)
+bool equality(GainPower_t x, GainPower_t y)
 {
 	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) == (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
 }
-bool cond(GainsPowers x)
+bool cond(GainPower_t x)
 {
 	return (x.g==0.0);
 }
 void SimplifyBracket(Bracket& br)
 {
-	vector<double> gains=br.GetGains();
-	vector<Power_t> powers=br.GetPowers();
-	vector<GainsPowers> GP;
-	GainsPowers unit_gp(0.0, 0, 0, 0, 0);
-	for (unsigned i=0;i<br.BracketSize();i++)
-	{
-		unit_gp.g=gains[i];
-		unit_gp.p1=powers[i].p1;
-		unit_gp.p2=powers[i].p2;
-		unit_gp.p3=powers[i].p3;
-		unit_gp.p4=powers[i].p4;
-		GP.push_back(unit_gp);
-	}
+	vector<GainPower_t> GP = br.GetTerms();
+	
 	sort(GP.begin(),GP.end(),comparefun); //сортировка массива
 	//удаление слагаемых с нулевыми коэффициентами
 	
@@ -125,10 +114,9 @@ void SimplifyBracket(Bracket& br)
 		GP[position].g=s;
 	}
 	//удаление слагаемых с нулевыми коэффициентами
-	vector<GainsPowers>::iterator new_end;
+	vector<GainPower_t>::iterator new_end;
 	new_end=remove_if(GP.begin(),GP.end(),cond);
 	GP.erase(new_end, GP.end());
-	
-	copy(GP.begin(),GP.end(),ostream_iterator<int> (cout," "));
-	cout << "!";
+
+	br.SetTerms(GP);
 }
