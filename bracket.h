@@ -33,11 +33,11 @@ class Bracket
 {
 public:
     Bracket(unsigned N = 0);
-    //Bracket(std::vector<double>& gains, std::vector<Power_t>& powers);
+    Bracket(std::vector<GainPower_t>& terms);
 
     virtual ~Bracket();
     void BracketInit(unsigned N);
-    //void BracketInit(std::vector<double>& gains, std::vector<Power_t>& powers);
+	void BracketInit(std::vector<GainPower_t>& terms);
     void BracketCleanUp();
     unsigned BracketSize() {return m_N;}
 
@@ -67,7 +67,7 @@ public:
     Bracket& operator=(const Bracket& right);
 
 private:
-	std::vector<GainPower_t> m_Terms;  //скобка представляет собой вектор одночленов (m_Elem)
+	std::vector<GainPower_t> m_Terms;  //скобка представляет собой вектор одночленов (m_Terms)
 
     unsigned m_N;
 };

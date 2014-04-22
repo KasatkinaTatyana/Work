@@ -23,7 +23,7 @@ public:
 
 	void NumMatrixInit();    //Формирование метрической матрицы и матрицы Эйлера с использованием численного интегрирования
 
-    void AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers, std::vector<Bracket>& vect_bracket);
+    void AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket);
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 

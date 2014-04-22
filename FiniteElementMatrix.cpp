@@ -98,7 +98,8 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,
 	}
 	tfile.close();
 
-	MatrixInit();
+	//MatrixInit();
+	NumMatrixInit();
 	ShowMatrixs();
 }
 
@@ -263,6 +264,9 @@ void FiniteElementMatrix::MatrixInit()
 															std::cout<< " Euler_matr = " << Integrate(euler_br);
 															std::cout << std::endl;
 
+															if ((count_rows==0)&&(count_columns==4))
+																double gg=1;
+
 															*(m_EulerMatrix+m_MatrixSize*count_rows+count_columns)=Integrate(euler_br);
 
 															//-------------------------------------------------------------------
@@ -310,10 +314,9 @@ void FiniteElementMatrix::MatrixInit()
 	}//gamma
 }//MatrixInit
 
-void FiniteElementMatrix::AddToVectBracket(std::vector<double>& gains, std::vector<Power_t>& powers,
-										   std::vector<Bracket>& vect_bracket)
+void FiniteElementMatrix::AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket)
 {
-	vect_bracket.push_back(Bracket(gains,powers));
+	vect_bracket.push_back(Bracket(terms));
 }
 
 
@@ -383,9 +386,11 @@ void FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta, vector<unsigned>
 void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind,
 									   std::vector<Bracket>& vect_bracket)
 {
-	Power_t local_powers={0,0,0,0};
+	GainPower_t term={1.0, 0, 0, 0, 0};
+	std::vector<GainPower_t> terms;
+	/*Power_t local_powers={0,0,0,0};
 	std::vector<Power_t> powers;
-	std::vector<double> gains;
+	std::vector<double> gains;*/
 
 	if ((gamma == numb)||(beta==numb)) //добавление несмещенного многочлена Сильвестра
 	{
@@ -393,9 +398,8 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 		{
 			if (vect_bracket.empty())
 			{
-				gains.push_back(1);
-				powers.push_back(local_powers);
-				AddToVectBracket(gains,powers,vect_bracket);
+				terms.push_back(term);
+				AddToVectBracket(terms,vect_bracket);
 			}
 		}
 		else
@@ -406,22 +410,21 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 				g=(m_P+0.0)/(s+1.0);
 				if (g!=0)
 				{
-					gains.push_back(g);
-					LocalPowersChange(local_powers,numb,1);
-					powers.push_back(local_powers);
+					term.g = g;
+					LocalTermsChange(term,numb,1);
+					terms.push_back(term);
 				}
 
 				g=(-1.*s)/(s+1.0);
 				if (g!=0)
 				{
-					gains.push_back(g);
-					LocalPowersChange(local_powers,numb,0);
-					powers.push_back(local_powers);
+					term.g = g;
+					LocalTermsChange(term,numb,0);
+					terms.push_back(term);
 				}
 
-				AddToVectBracket(gains,powers,vect_bracket);
-				gains.clear();
-				powers.clear();
+				AddToVectBracket(terms,vect_bracket);
+				terms.clear();
 			}
 		}
 	}
@@ -431,9 +434,8 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 		{
 			if (vect_bracket.empty())
 			{
-				gains.push_back(1);
-				powers.push_back(local_powers);
-				AddToVectBracket(gains,powers,vect_bracket);
+				terms.push_back(term);
+				AddToVectBracket(terms,vect_bracket);
 			}
 		}
 		else
@@ -444,22 +446,21 @@ void FiniteElementMatrix::AddSilvester(unsigned gamma, unsigned beta, unsigned n
 				g=(m_P+0.0)/(s+1.0)/(s+1.0);
 				if (g!=0)
 				{
-					gains.push_back(g);
-					LocalPowersChange(local_powers,numb,1);
-					powers.push_back(local_powers);
+					term.g = g;
+					LocalTermsChange(term,numb,1);
+					terms.push_back(term);
 				}
 
 				g=(-1.*s-1.0)/(s+1.0)/(s+1.0);
 				if (g!=0)
 				{
-					gains.push_back(g);
-					LocalPowersChange(local_powers,numb,0);
-					powers.push_back(local_powers);
+					term.g = g;
+					LocalTermsChange(term,numb,0);
+					terms.push_back(term);
 				}
 
-				AddToVectBracket(gains,powers,vect_bracket);
-				gains.clear();
-				powers.clear();
+				AddToVectBracket(terms,vect_bracket);
+				terms.clear();
 			}
 		}
 	}
@@ -532,146 +533,139 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 	for (unsigned i=0;i<m_Dim;i++)
 		vect_nabla_phi.push_back(local_br);
 
-	std::vector<Power_t> powers, current_powers;
+	/*std::vector<Power_t> powers, current_powers;
 	std::vector<double> gains, current_gains;
 	Power_t pw;
-	double gn;
+	double gn;*/
+	std::vector<GainPower_t> terms, current_terms;
+	GainPower_t trm;
 
-	current_powers=br.GetPowers();
-	current_gains=br.GetGains();
+	/*current_powers=br.GetPowers();
+	current_gains=br.GetGains();*/
+	current_terms = br.GetTerms();
 
 	for (unsigned i=0;i<br.BracketSize();i++)
 	{
-		if ((current_powers[i]).p1>0)
+		if ((current_terms[i]).p1>0)
 		{
 			//Добавление градиента ksi_1 с соответствующим коэффициентом,
 			//если текущий элемент скобки зависит от переменной ksi_1
 			for (unsigned j=0;j<m_Dim;j++)
 			{
-				pw.p1=(unsigned)(current_powers[i].p1-1);
-				pw.p2=current_powers[i].p2;
-				pw.p3=current_powers[i].p3;
-				pw.p4=current_powers[i].p4;
+				trm.p1=(unsigned)(current_terms[i].p1-1);
+				trm.p2=current_terms[i].p2;
+				trm.p3=current_terms[i].p3;
+				trm.p4=current_terms[i].p4;
 
-				gn=m_GradKsi_1[j]*current_gains[i]*((double)(current_powers[i]).p1);
+				trm.g=m_GradKsi_1[j]*current_terms[i].g*((double)(current_terms[i]).p1);
 
-				powers.push_back(pw);
-				gains.push_back(gn);
+				terms.push_back(trm);
 
-				local_br.SetPowers(powers);
-				local_br.SetGains(gains);
+				local_br.SetTerms(terms);
 
-				powers.clear();
-				gains.clear();
+				terms.clear();
 
 				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
 			}
 		}//ksi_1
 
 		//Аналогично градиенты ksi_2, ksi_3, ksi_4
-		if ((current_powers[i]).p2>0)
+		if ((current_terms[i]).p2>0)
 		{
 			//Добавление градиента ksi_1 с соответствующим коэффициентом,
 			//если текущий элемент скобки зависит от переменной ksi_1
 			for (unsigned j=0;j<m_Dim;j++)
 			{
-				pw.p1=current_powers[i].p1;
-				pw.p2=(unsigned)(current_powers[i].p2-1);;
-				pw.p3=current_powers[i].p3;
-				pw.p4=current_powers[i].p4;
+				trm.p1=current_terms[i].p1;
+				trm.p2=(unsigned)(current_terms[i].p2-1);;
+				trm.p3=current_terms[i].p3;
+				trm.p4=current_terms[i].p4;
 
-				gn=m_GradKsi_2[j]*current_gains[i]*((double)(current_powers[i]).p2);
+				trm.g=m_GradKsi_2[j]*current_terms[i].g*((double)(current_terms[i]).p2);
 
-				powers.push_back(pw);
-				gains.push_back(gn);
+				terms.push_back(trm);
 
-				local_br.SetPowers(powers);
-				local_br.SetGains(gains);
+				local_br.SetTerms(terms);
 
-				powers.clear();
-				gains.clear();
+				terms.clear();
 
 				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
 			}
 		}//ksi_2
 
-		if ((current_powers[i]).p3>0)
+		if ((current_terms[i]).p3>0)
 		{
 			//Добавление градиента ksi_1 с соответствующим коэффициентом,
 			//если текущий элемент скобки зависит от переменной ksi_1
 			for (unsigned j=0;j<m_Dim;j++)
 			{
-				pw.p1=current_powers[i].p1;
-				pw.p2=current_powers[i].p2;
-				pw.p3=(unsigned)(current_powers[i].p3-1);;
-				pw.p4=current_powers[i].p4;
+				trm.p1=current_terms[i].p1;
+				trm.p2=current_terms[i].p2;
+				trm.p3=(unsigned)(current_terms[i].p3-1);;
+				trm.p4=current_terms[i].p4;
 
-				gn=m_GradKsi_3[j]*current_gains[i]*((double)(current_powers[i]).p3);
+				trm.g=m_GradKsi_3[j]*current_terms[i].g*((double)(current_terms[i]).p3);
 
-				powers.push_back(pw);
-				gains.push_back(gn);
+				terms.push_back(trm);
 
-				local_br.SetPowers(powers);
-				local_br.SetGains(gains);
+				local_br.SetTerms(terms);
 
-				powers.clear();
-				gains.clear();
+				terms.clear();
 
 				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
 			}
 		}//ksi_3
 
-		if ((current_powers[i]).p4>0)
+		if ((current_terms[i]).p4>0)
 		{
 			//Добавление градиента ksi_1 с соответствующим коэффициентом,
 			//если текущий элемент скобки зависит от переменной ksi_1
 			for (unsigned j=0;j<m_Dim;j++)
 			{
-				pw.p1=current_powers[i].p1;
-				pw.p2=current_powers[i].p2;
-				pw.p3=current_powers[i].p3;
-				pw.p4=(unsigned)(current_powers[i].p4-1);
+				trm.p1=current_terms[i].p1;
+				trm.p2=current_terms[i].p2;
+				trm.p3=current_terms[i].p3;
+				trm.p4=(unsigned)(current_terms[i].p4-1);
 
-				gn=m_GradKsi_4[j]*current_gains[i]*((double)(current_powers[i]).p4);
+				trm.g=m_GradKsi_4[j]*current_terms[i].g*((double)(current_terms[i]).p4);
 
-				powers.push_back(pw);
-				gains.push_back(gn);
+				terms.push_back(trm);
 
-				local_br.SetPowers(powers);
-				local_br.SetGains(gains);
+				local_br.SetTerms(terms);
 
-				powers.clear();
-				gains.clear();
+				terms.clear();
 
 				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
 			}
 		}//ksi_4
 	}//vect_nabla_phi готов
 
-	pw.p1=0;
-	pw.p2=0;
-	pw.p3=0;
-	pw.p4=0;
+	trm.p1=0;
+	trm.p2=0;
+	trm.p3=0;
+	trm.p4=0;
+	trm.g=1.0;
 
-	gains.push_back(1.0);
-	local_br.SetGains(gains);
+	terms.push_back(trm);
+
+	local_br.SetTerms(terms);
 
 	//(ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n)) = vect_ksi_nm
 	std::vector<Bracket> vect_ksi_nm;
 
-	LocalPowersChange(pw,n,1);
-	powers.push_back(pw);
-	local_br.SetPowers(powers);
+	LocalTermsChange(trm,n,1);
+	terms.push_back(trm);
+	local_br.SetTerms(terms);
 
 	for (unsigned i=0;i<m_Dim;i++)
 		vect_ksi_nm.push_back(local_br*v_1[i]);
 
-	LocalPowersChange(pw,n,0);
-	LocalPowersChange(pw,m,1);
+	LocalTermsChange(trm,n,0);
+	LocalTermsChange(trm,m,1);
 
-	powers.clear();
-	powers.push_back(pw);
-	local_br.SetPowers(powers);
+	terms.clear();
+	terms.push_back(trm);
+	local_br.SetTerms(terms);
 
 	Bracket br_1=local_br*v_2[0];
 	vect_ksi_nm[0]=vect_ksi_nm[0]-br_1;
@@ -729,18 +723,11 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 
 	Bracket local_br(1);
 
-	Power_t pw={0,0,0,0};
-
-	std::vector<Power_t> powers;
-	std::vector<double> gains;
-
-	LocalPowersChange(pw,n,1);
-
-	powers.push_back(pw);
-	gains.push_back(1.0);
-
-	local_br.SetGains(gains);
-	local_br.SetPowers(powers);
+	GainPower_t trm={1.0, 0, 0, 0, 0};
+	std::vector<GainPower_t> terms;
+	LocalTermsChange(trm,n,1);
+	terms.push_back(trm);
+	local_br.SetTerms(terms);
 
 	Bracket res_br=local_br*(a[0]);
 	result.push_back(res_br);
@@ -751,14 +738,14 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 	res_br=local_br*(a[2]);
 	result.push_back(res_br);
 
-	powers.clear();
+	terms.clear();
 
-	LocalPowersChange(pw,n,0);
-	LocalPowersChange(pw,m,1);
+	LocalTermsChange(trm,n,0);
+	LocalTermsChange(trm,m,1);
 
-	powers.push_back(pw);
+	terms.push_back(trm);
 
-	local_br.SetPowers(powers);
+	local_br.SetTerms(terms);
 	for (unsigned i=0;i<m_Dim;i++)
 	{
 		res_br=local_br*b[i];

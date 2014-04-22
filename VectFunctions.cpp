@@ -60,15 +60,11 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
     double m_Dim=3;
 
     //создаю скобку, которая ничего не содержит
-    std::vector<double> zero_gains;
-    zero_gains.push_back(0.0);
-    std::vector<Power_t> zero_powers;
-    Power_t p={0, 0, 0, 0};
-    zero_powers.push_back(p);
+	std::vector<GainPower_t> zero_terms;
+	GainPower_t trm={0.0, 0, 0, 0, 0};
+	zero_terms.push_back(trm);
 
     Bracket result(1);
-    result.SetGains(zero_gains);
-    result.SetPowers(zero_powers);
 
     Bracket br_product=vect1[0]*(M[0][0]);
 
@@ -76,8 +72,7 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 
     for (unsigned i=0;i<m_Dim;i++)
     {
-        br_sum.SetGains(zero_gains);
-        br_sum.SetPowers(zero_powers);
+        br_sum.SetTerms(zero_terms);
 
         for (unsigned k=0;k<m_Dim;k++)
         {

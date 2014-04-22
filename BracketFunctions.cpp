@@ -14,46 +14,44 @@ using namespace std;
 void VectBracketValue (vector<Bracket>& br, vector<double>& vect, double ksi1, double ksi2, double ksi3)
 {
 	vect.clear();
-	std::vector<double> gains;
-	std::vector<Power_t> powers;
+	std::vector<GainPower_t> terms;
+
 	double S;
 	for (unsigned i=0;i<br.size();i++)
 	{
 		S=0;
-		gains=br[i].GetGains();
-		powers=br[i].GetPowers();
+		terms=br[i].GetTerms();
+
 		for (unsigned j=0;j<br[i].BracketSize();j++)
 		{
-			S=S+gains[j]*pow(ksi1,powers[j].p1)*
-				pow(ksi2,powers[j].p2)*
-				pow(ksi3,powers[j].p3)*
-				pow((1-ksi1-ksi2-ksi3),powers[j].p4);
+			S=S+terms[j].g*pow(ksi1,terms[j].p1)*
+				pow(ksi2,terms[j].p2)*
+				pow(ksi3,terms[j].p3)*
+				pow((1-ksi1-ksi2-ksi3),terms[j].p4);
 		}
 		vect.push_back(S);
 
-		gains.clear();
-		powers.clear();
+		terms.clear();
 	}
 }
-
-//----------В переменной local_powers присвоить полю с номером ind значение value--------------
-void LocalPowersChange(Power_t& local_powers, unsigned ind, unsigned value)
+//----------В переменной local_terms присвоить полю p с индексом ind значение value---------------
+void LocalTermsChange(GainPower_t& local_terms, unsigned ind,unsigned value)
 {
 	if (ind==1)
 	{
-		local_powers.p1=value;
+		local_terms.p1=value;
 	}
 	if (ind==2)
 	{
-		local_powers.p2=value;
+		local_terms.p2=value;
 	}
 	if (ind==3)
 	{
-		local_powers.p3=value;
+		local_terms.p3=value;
 	}
 	if (ind==4)
 	{
-		local_powers.p4=value;
+		local_terms.p4=value;
 	}
 }
 //--------------------------------------------------------------------------------------------
@@ -75,12 +73,12 @@ bool cond(GainPower_t x)
 void SimplifyBracket(Bracket& br)
 {
 	vector<GainPower_t> GP = br.GetTerms();
-	
+
 	sort(GP.begin(),GP.end(),comparefun); //сортировка массива
 	//удаление слагаемых с нулевыми коэффициентами
-	
+
 	//Слагаемые с одинаковыми степенями суммируются
-	
+
 	unsigned flag=0, position=0; 
 	double s=0;
 
@@ -118,5 +116,15 @@ void SimplifyBracket(Bracket& br)
 	new_end=remove_if(GP.begin(),GP.end(),cond);
 	GP.erase(new_end, GP.end());
 
-	br.SetTerms(GP);
+	//Проверка на то, чтобы в итоге скобка содержала хотя бы один элемент
+	if (GP.size() > 0)
+		br.SetTerms(GP);
+	else
+	{
+		GainPower_t t = {0.0, 0, 0, 0, 0};
+		std::vector<GainPower_t> term;
+		term.push_back(t);
+
+		br.SetTerms(term);
+	}
 }

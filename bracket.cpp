@@ -18,10 +18,10 @@ Bracket::Bracket(unsigned N) : m_N(N)
     BracketInit(N);
 }
 
-/*Bracket::Bracket(std::vector<double>& gains, std::vector<Power_t>& powers)
+Bracket::Bracket(std::vector<GainPower_t>& terms)
 {
-    BracketInit(gains, powers);
-}*/
+    BracketInit(terms);
+}
 
 Bracket::~Bracket()
 {
@@ -42,17 +42,16 @@ void Bracket::BracketInit(unsigned N)
     }
 }
 
-/*void Bracket::BracketInit(std::vector<double>& gains, std::vector<Power_t>& powers)
+void Bracket::BracketInit(std::vector<GainPower_t>& terms)
 {
-    unsigned N=gains.size();
+    unsigned N=terms.size();
     m_N=N;
+	m_Terms.clear();
     for (unsigned i=0;i<m_N;i++)
     {
-        m_Gains.push_back(gains[i]);
-
-        m_Powers.push_back(powers[i]);
+		m_Terms.push_back(terms.at(i));
     }
-}*/
+}
 
 void Bracket::BracketCleanUp()
 {
