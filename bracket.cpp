@@ -58,48 +58,6 @@ void Bracket::BracketCleanUp()
     m_Terms.clear();
 }
 
-std::vector<double> Bracket::GetGains()
-{
-	std::vector<double> gains(m_N);
-	for (unsigned i=0;i<m_N;i++)
-		gains[i]=m_Terms[i].g;
-	return gains;
-}
-
-std::vector<Power_t> Bracket::GetPowers()
-{
-	vector<Power_t> powers(m_N);
-	Power_t pw={0, 0, 0, 0};
-	for (unsigned i=0;i<m_N;i++)
-	{
-		powers[i].p1=m_Terms[i].p1;
-		powers[i].p2=m_Terms[i].p2;
-		powers[i].p3=m_Terms[i].p3;
-		powers[i].p4=m_Terms[i].p4;
-	}
-	return powers;
-}
-
-void Bracket::SetGains(std::vector<double>& gains)
-{
-	unsigned N=gains.size();
-	if (N == m_N)
-		for (unsigned i=0;i<N;i++)
-		{
-			m_Terms[i].g=gains[i];
-		}
-	else
-	{
-		m_Terms.clear();
-		GainPower_t term={0.0, 0, 0, 0, 0};
-		for (unsigned i=0;i<N;i++)
-		{
-			term.g=gains[i];
-			m_Terms.push_back(term);
-		}
-		m_N=N;
-	}
-}
 
 std::vector<GainPower_t> Bracket::GetTerms()
 {
@@ -116,33 +74,6 @@ void Bracket::SetTerms(std::vector<GainPower_t>& terms)
 	m_Terms.clear();
 	for (unsigned i=0;i<m_N;i++)
 		m_Terms.push_back(terms.at(i));
-}
-
-void Bracket::SetPowers(std::vector<Power_t>& powers)
-{
-    unsigned N=powers.size();
-	if (N == m_N)
-		for (unsigned i=0;i<N;i++)
-		{
-			m_Terms[i].p1=powers[i].p1;
-			m_Terms[i].p2=powers[i].p2;
-			m_Terms[i].p3=powers[i].p3;
-			m_Terms[i].p4=powers[i].p4;
-		}
-	else
-	{
-		m_Terms.clear();
-		GainPower_t term={0.0, 0, 0, 0, 0};
-		for (unsigned i=0;i<N;i++)
-		{
-			term.p1=powers[i].p1;
-			term.p2=powers[i].p2;
-			term.p3=powers[i].p3;
-			term.p4=powers[i].p4;
-			m_Terms.push_back(term);
-		}
-		m_N=N;
-	}
 }
 
 void Bracket::ShowElements()

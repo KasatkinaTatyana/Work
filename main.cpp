@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 
 //------------------------------------------------------------------
 
-void test_bracket(unsigned N, unsigned p_i, double g_i)
+/*void test_bracket(unsigned N, unsigned p_i, double g_i)
 {
 	Bracket br(3);
 
@@ -199,7 +199,7 @@ void test_prod()
 	br1*=br2;
 
 	br1.ShowElements();
-}
+}*/
 
 /*void Test_AddVTVProduct()
 {

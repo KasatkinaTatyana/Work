@@ -41,12 +41,6 @@ public:
     void BracketCleanUp();
     unsigned BracketSize() {return m_N;}
 
-    std::vector<double> GetGains();
-    void SetGains(std::vector<double>& gains);
-
-    std::vector<Power_t> GetPowers(); 
-    void SetPowers(std::vector<Power_t>& powers);
-
 	std::vector<GainPower_t> GetTerms();
     void SetTerms(std::vector<GainPower_t>& terms);
 

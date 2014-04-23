@@ -98,8 +98,8 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,
 	}
 	tfile.close();
 
-	//MatrixInit();
-	NumMatrixInit();
+	MatrixInit();
+	//NumMatrixInit();
 	ShowMatrixs();
 }
 
@@ -488,24 +488,22 @@ double FiniteElementMatrix::Integrate (Bracket& br)
 {
 	double I=0;
 	unsigned pow1, pow2, pow3, pow4;
-	std::vector<Power_t> arr_local_powers=br.GetPowers();
-	std::vector<double> gains=br.GetGains();
-	Power_t local_powers;
+	std::vector<GainPower_t> terms;
+	terms=br.GetTerms();
+	
 	double i1, i2, i3, i4, i_s;
-	for (unsigned i=0;i<gains.size();i++)
+	for (unsigned i=0;i<terms.size();i++)
 	{
-
-		local_powers=arr_local_powers.at(i);
-		pow1=local_powers.p1;
-		pow2=local_powers.p2;
-		pow3=local_powers.p3;
-		pow4=local_powers.p4;
+		pow1=terms.at(i).p1;
+		pow2=terms.at(i).p2;
+		pow3=terms.at(i).p3;
+		pow4=terms.at(i).p4;
 		i1=CalcFact(pow1);
 		i2=CalcFact(pow2);
 		i3=CalcFact(pow3);
 		i4=CalcFact(pow4);
 		i_s=CalcFact(pow1+pow2+pow3+pow4+3);
-		I=I+gains[i]*i1*i2*i3*i4*6.0/i_s;
+		I=I+terms.at(i).g*i1*i2*i3*i4*6.0/i_s;
 	}
 	return I;
 }
