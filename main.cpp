@@ -18,7 +18,8 @@ void test_bracket(unsigned N, unsigned p_i, double g_i);
 void test_simplify(unsigned N, unsigned p_i, double g_i);
 void test_prod();
 //void test_vectBracket(unsigned N, unsigned p_i, double g_i);
-void test_Metrixs();
+void test_Matrixs();
+//void test_integrate();
 
 //------------------------------------------------------------------
 
@@ -28,8 +29,9 @@ int main(int argc, char *argv[])
 	//test_simplify(2,1,1);
     //test_vectBracket(2,1,1);
 	//test_prod();
-	test_Metrixs();
-	//system("pause");
+	test_Matrixs();
+	//test_integrate();
+	system("pause");
     return 0;
 }
 
@@ -263,7 +265,7 @@ void test_prod()
     FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 }*/
 
-void test_Metrixs()
+void test_Matrixs()
 {
 	//Создаю матрицу, содержащую вершины элемента
     double simplex_peaks[4][3];
@@ -304,5 +306,74 @@ void test_Metrixs()
             }
         }
     }
-    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+	Eps[0][1]=1;
+	Eps[0][2]=2;
+
+	vector<double> a,b;
+	a.push_back(1.0);
+	a.push_back(2.0);
+	a.push_back(3.0);
+
+	b.push_back(-1.0);
+	b.push_back(-2.0);
+	b.push_back(-3.0);
+
+	double pr=NumericalVectorTensorVectorProduct(a,b,Eps);
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 }
+
+/*void test_integrate()
+{
+	GainPower_t trm={1.0, 1, 0, 1, 0};
+	std::vector<GainPower_t> terms(1,trm);
+	Bracket br(terms);
+	//Создаю матрицу, содержащую вершины элемента
+    double simplex_peaks[4][3];
+
+    simplex_peaks[0][0]=2;
+    simplex_peaks[0][1]=0;
+    simplex_peaks[0][2]=0;
+
+    simplex_peaks[1][0]=0;
+    simplex_peaks[1][1]=1;
+    simplex_peaks[1][2]=0;
+
+    simplex_peaks[2][0]=0;
+    simplex_peaks[2][1]=0;
+    simplex_peaks[2][2]=1;
+
+    simplex_peaks[3][0]=0;
+    simplex_peaks[3][1]=0;
+    simplex_peaks[3][2]=0;
+    //создаю матрицы диэлектрической и магнитной проницаемости
+    double Mu[3][3], Eps[3][3];
+
+    for (unsigned i=0;i<3;i++)
+    {
+        for (unsigned j=0;j<3;j++)
+        {
+            if (i==j)
+            {
+                Mu[i][j]=1;
+                Eps[i][j]=1;
+            }
+            else
+            {
+                Eps[i][j]=0;
+                Mu[i][j]=0;
+            }
+        }
+    }
+	Eps[0][1]=1;
+	Eps[0][2]=2;
+
+	FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+
+	double Int = f.Integrate(br);
+	std::vector<Bracket> vect_br(1,br);
+	std::vector<double> vect_numb;
+	f.NumIntegration(vect_br,vect_numb);
+	std::cout << Int << std::endl;
+	std::cout << vect_numb[0] << std::endl;
+	system("pause");
+}*/

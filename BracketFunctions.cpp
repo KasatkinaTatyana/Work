@@ -11,12 +11,13 @@
 
 using namespace std;
 
-void VectBracketValue (vector<Bracket>& br, vector<double>& vect, double ksi1, double ksi2, double ksi3)
+double ProdVectBracketValue (vector<Bracket>& br, double ksi1, double ksi2, double ksi3)
 {
-	vect.clear();
 	std::vector<GainPower_t> terms;
 
+	double result=1.0;
 	double S;
+
 	for (unsigned i=0;i<br.size();i++)
 	{
 		S=0;
@@ -27,12 +28,13 @@ void VectBracketValue (vector<Bracket>& br, vector<double>& vect, double ksi1, d
 			S=S+terms[j].g*pow(ksi1,terms[j].p1)*
 				pow(ksi2,terms[j].p2)*
 				pow(ksi3,terms[j].p3)*
-				pow((1-ksi1-ksi2-ksi3),terms[j].p4);
+				pow((1.0-ksi1-ksi2-ksi3),terms[j].p4);
 		}
-		vect.push_back(S);
+		result*=S;
 
 		terms.clear();
 	}
+	return result;
 }
 //----------В переменной local_terms присвоить полю p с индексом ind значение value---------------
 void LocalTermsChange(GainPower_t& local_terms, unsigned ind,unsigned value)
@@ -127,4 +129,19 @@ void SimplifyBracket(Bracket& br)
 
 		br.SetTerms(term);
 	}
+}
+
+//----------------------Возвращает ksi c номером n--------------------------------------
+double DefKsi(unsigned n, double ksi1, double ksi2, double ksi3)
+{
+	double result;
+	if (n==1)
+		result=ksi1;
+	if (n==2)
+		result=ksi2;
+	if (n==3)
+		result=ksi3;
+	if (n==4)
+		result=1-ksi1-ksi2-ksi3;
+	return result;
 }

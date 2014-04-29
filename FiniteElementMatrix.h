@@ -33,7 +33,13 @@ public:
 
     std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
 
-	void NumIntegration(std::vector<Bracket>& vect_br, std::vector<double>& result);
+	void NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
+							double ksi1, double ksi2, double ksi3, 
+							std::vector<double>& result);
+
+	//void NumIntegration(std::vector<Bracket>& vect_br, std::vector<double>& result);
+
+	double Integrate(Bracket& br);
 
 private:
 
@@ -48,12 +54,12 @@ private:
 
         void AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind, std::vector<Bracket>& vect_bracket);
 
-        double Integrate (Bracket& br);
 
         void findIndex(unsigned gamma, unsigned beta, unsigned order, unsigned& idxLow, unsigned& idxHigh);
 
         double *m_MetrMatrix;                    //Метрическая матрица
         double *m_EulerMatrix;                   //Матрица Эйлера
+		double *m_NumEulerMatrix;
         unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Эйлера
 
         //Вычисление факториалов--------------------------------------------------------------------------------------------
@@ -81,6 +87,8 @@ private:
 		//Массивы корней полиномов Лежандра и весов для численного интегрирования
 		std::vector<double> m_Weights;
 		std::vector<double> m_Roots;
+
+		void CompareMatrixs();
 };
 
 #endif // FINITEELEMENTMATRIX_H

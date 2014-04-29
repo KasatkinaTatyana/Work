@@ -66,7 +66,7 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 
     Bracket result(1);
 
-    Bracket br_product=vect1[0]*(M[0][0]);
+    Bracket br_product(1);
 
     Bracket br_sum(1);
 
@@ -76,17 +76,12 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 
         for (unsigned k=0;k<m_Dim;k++)
         {
-            if ((i!=0)||(k!=0))
-            {
-                br_product=vect1[k]*(M[k][i]);
-            }
+            br_product=vect1[k]*(M[k][i]);
             br_sum=br_sum+br_product;
         }
         br_sum=br_sum*vect2[i];
 
         result=result+br_sum;
-
-        br_sum.BracketCleanUp();
     }
     return result;
 }
