@@ -55,7 +55,7 @@ double ScalarProduct(std::vector<double> a, std::vector<double> b)
 
 //--------------ѕроизведение вектора, тензора и вектора в общем виде----------------------------------
 Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
-                                                              std::vector<Bracket>& vect2, double M[][3])
+                                                              std::vector<Bracket>& vect2, double** M)
 {
     double m_Dim=3;
 
@@ -109,7 +109,7 @@ void SumVector(std::vector<double>& sum,const std::vector<double> added)
 
 //-----------------------------ѕроизведение числового вектора, матрицы и числового вектора------------------------------------
 double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
-                                          std::vector<double>& vect2, double M[][3])
+                                          std::vector<double>& vect2, double** M)
 {
 	unsigned m_Dim=3;
 	double s;

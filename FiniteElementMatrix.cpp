@@ -11,14 +11,20 @@
 
 using namespace std;
 
-FiniteElementMatrix::FiniteElementMatrix(unsigned p,
-										 double simplex_peaks[m_CountPeaks][m_Dim],
-										 double Eps[m_Dim][m_Dim],
-										 double Mu[m_Dim][m_Dim])
-										 : m_P(p)
+FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu) : m_P(p)
 {
+	m_Peaks = new double*[m_CountPeaks];
+	m_MatrixMu = new double*[m_Dim];
+	m_MatrixEps = new double*[m_Dim];
+
 	for (unsigned i=0;i<m_CountPeaks;i++)
 	{
+		m_Peaks[i] = new double[m_Dim];
+		if (i<m_Dim)
+		{
+			m_MatrixMu[i] = new double[m_Dim];
+			m_MatrixEps[i] = new double[m_Dim];
+		}
 		for (unsigned j=0;j<m_Dim;j++)
 		{
 			m_Peaks[i][j]=simplex_peaks[i][j];
@@ -99,8 +105,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p,
 	tfile.close();
 
 	MatrixInit();
+	
 	NumMatrixInit();
-	//ShowMatrixs();
+	ShowMatrixes();
 	CompareMatrixs();
 }
 
@@ -109,6 +116,15 @@ FiniteElementMatrix::~FiniteElementMatrix()
 	delete[] m_MetrMatrix;
 	delete[] m_EulerMatrix;
 	delete[] m_NumEulerMatrix;
+
+	for (unsigned i=0; i < m_CountPeaks; i++)
+		delete[] m_Peaks[i];
+
+	for (unsigned i=0; i < m_Dim; i++)
+	{
+		delete[] m_MatrixEps[i];
+		delete[] m_MatrixMu[i];
+	}
 }
 
 
@@ -679,7 +695,7 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 	return result;
 }
 
-void FiniteElementMatrix::ShowMatrixs()
+void FiniteElementMatrix::ShowMatrixes()
 {
 	std::cout << "============EulerMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
@@ -692,7 +708,7 @@ void FiniteElementMatrix::ShowMatrixs()
 		std::cout << std::endl;
 	}
 
-	/*std::cout << "============MetrMatrix==============" << std::endl;
+	std::cout << "============MetrMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
 		for (unsigned j=0;j<m_MatrixSize;j++)
@@ -701,7 +717,7 @@ void FiniteElementMatrix::ShowMatrixs()
 
 		}
 		std::cout << std::endl;
-	}*/
+	}
 	system("pause");
 
 }
@@ -751,38 +767,6 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 	return result;
 }
 
-
-//---------------„исленное интегрирование трехмерного вектора, координатами которого €вл€ютс€ скобки с помощью 
-// квадратурных формул √аусса 15-го пор€дка---------------------------------------------------------------------
-/*void FiniteElementMatrix::NumIntegration(std::vector<Bracket>& vect_br, std::vector<double>& result)
-{
-	result.assign(m_Dim,0.0);    
-
-	std::vector<double> added_vector;
-	double x, y, z;
-	double u, v, w;
-	for (unsigned i=0;i<m_QuadOrder;i++)
-	{
-		for (unsigned j=0;j<m_QuadOrder;j++)
-		{
-			for (unsigned k=0;k<m_QuadOrder;k++)
-			{
-				u=m_Roots[i]*0.5+0.5;
-				v=m_Roots[j]*0.5+0.5;
-				w=m_Roots[k]*0.5+0.5;
-				x = u*v*w;
-				y = u*v*(1.0 - w);
-				z = u*(1.0 - v);
-				VectBracketValue(vect_br,added_vector,x, y, z);
-				MultNumber(added_vector, m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2)*v);
-
-				SumVector(result,added_vector);
-			}
-		}
-	}
-	MultNumber(result,pow(0.5,3));
-}*/
-
 //-------------------------------‘ормирование матрицы Ёйлера и метрической матрицы с использованием численного интегрировани€-------
 //-------------------------------------------------код сильно повтор€ет метод MatrixInit()------------------------------------------
 void FiniteElementMatrix::NumMatrixInit()
@@ -790,11 +774,8 @@ void FiniteElementMatrix::NumMatrixInit()
 	double u, v, w;
 	double x, y, z;
 	double I;
-	//¬ыдел€ю пам€ть под матрицу (метрическа€ и Ёйлера)
-
-	m_MetrMatrix = new double[m_MatrixSize*m_MatrixSize];
+	//¬ыдел€ю пам€ть под матрицу Ёйлера
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
-
 	//--------------------------------------------------
 
 	unsigned ilow, ihigh,
@@ -897,9 +878,9 @@ void FiniteElementMatrix::NumMatrixInit()
 																	{
 																		for (unsigned k=0;k<m_QuadOrder;k++)
 																		{
-																			u=m_Roots[i]*0.5+0.5;
-																			v=m_Roots[j]*0.5+0.5;
-																			w=m_Roots[k]*0.5+0.5;
+																			u=m_Roots[i];
+																			v=m_Roots[j];
+																			w=m_Roots[k];
 																			x = u*v*w;
 																			y = u*v*(1.0 - w);
 																			z = u*(1.0 - v);

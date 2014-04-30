@@ -16,8 +16,7 @@ public:
 	static const unsigned m_QuadOrder=15;            //Порядок квадратурных формул
 	//static const unsigned m_QuadOrder=2;
 
-    FiniteElementMatrix(unsigned p, double simplex_peaks[m_CountPeaks][m_Dim], double Eps[m_Dim][m_Dim],
-                        double Mu[m_Dim][m_Dim]);
+    FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu);
     virtual ~FiniteElementMatrix();
     void MatrixInit();
 
@@ -29,15 +28,13 @@ public:
 
     std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
 
-    void ShowMatrixs();
+    void ShowMatrixes();
 
     std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
 
 	void NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
 							double ksi1, double ksi2, double ksi3, 
 							std::vector<double>& result);
-
-	//void NumIntegration(std::vector<Bracket>& vect_br, std::vector<double>& result);
 
 	double Integrate(Bracket& br);
 
@@ -47,10 +44,15 @@ private:
 
         std::vector<double> DefVector(unsigned ind);
         void Def_nm(unsigned gamma, unsigned beta, std::vector<unsigned>& vect);
-        double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
+        //double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
 
-        double m_MatrixMu[m_Dim][m_Dim];    //Матрица тензора магнитной проницаемости
-        double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости
+        //double m_MatrixMu[m_Dim][m_Dim];    //Матрица тензора магнитной проницаемости
+        //double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости
+
+		double** m_Peaks;       //массив координат (4) вершин тетраэдра 4(=m_CountPeaks) на 3(=m_Dim)
+
+        double** m_MatrixMu;    //Матрица тензора магнитной проницаемости 3 на 3
+        double** m_MatrixEps;    //Матрица тензора диэлектрической проницаемости
 
         void AddSilvester(unsigned gamma, unsigned beta, unsigned numb, unsigned ind, std::vector<Bracket>& vect_bracket);
 
@@ -59,7 +61,7 @@ private:
 
         double *m_MetrMatrix;                    //Метрическая матрица
         double *m_EulerMatrix;                   //Матрица Эйлера
-		double *m_NumEulerMatrix;
+		double *m_NumEulerMatrix;                //Матрица Эйлера при численном интегрировании  
         unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Эйлера
 
         //Вычисление факториалов--------------------------------------------------------------------------------------------

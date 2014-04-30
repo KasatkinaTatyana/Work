@@ -10,12 +10,12 @@
 std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b);
 void VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b, std::vector<Bracket>& result);
 double ScalarProduct(std::vector<double> a, std::vector<double> b);
-Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double M[][3]);
+Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, double** M);
 
 void MultNumber(std::vector<double>& vect, double number);
 void SumVector(std::vector<double>& sum,const std::vector<double> added);
 
 double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
-                                          std::vector<double>& vect2, double M[][3]);
+                                          std::vector<double>& vect2, double** M);
 
 #endif // VECTFUNCTIONS_H
