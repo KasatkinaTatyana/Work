@@ -86,9 +86,18 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	}
 
 	//Чтение из файла корней полиномов Лежандра и весов
+	
 	double value;
 
-	ifstream tfile("Roots.txt");
+	m_QuadOrder=4;
+	string s_Roots="Roots4Nodes.txt";
+	string s_Weights="Weights4Nodes.txt";
+
+	// m_QuadOrder=15;
+	// s_Roots="Roots.txt";
+	// s_Weights="Weights.txt";
+
+	ifstream tfile(s_Roots);
 	while (!tfile.eof())
 	{
 		tfile>>value;
@@ -96,7 +105,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	}
 	tfile.close();
 
-	tfile.open("Weights.txt");
+	tfile.open(s_Weights);
 	while (!tfile.eof())
 	{
 		tfile>>value;
@@ -107,7 +116,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	MatrixInit();
 	
 	NumMatrixInit();
-	ShowMatrixes();
+	//ShowMatrixes();
 	CompareMatrixs();
 }
 
@@ -116,6 +125,7 @@ FiniteElementMatrix::~FiniteElementMatrix()
 	delete[] m_MetrMatrix;
 	delete[] m_EulerMatrix;
 	delete[] m_NumEulerMatrix;
+	delete[] m_NumMetrMatrix;
 
 	for (unsigned i=0; i < m_CountPeaks; i++)
 		delete[] m_Peaks[i];
@@ -165,14 +175,14 @@ void FiniteElementMatrix::MatrixInit()
 	unsigned count_rows=0;
 	unsigned count_columns=0;
 
-	vector<Bracket> vectCur_EigFunc;
+	vector<Bracket> vectCur_EigFunc;          // векторные функции
 	vector<Bracket> vectIn_EigFunc;
 
 	std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
 	//при проходе по всем остальным элементам
 	std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
 
-	vector<Bracket> vectCur_RotEigFunc;
+	vector<Bracket> vectCur_RotEigFunc;       // роторы векторных функций
 	vector<Bracket> vectIn_RotEigFunc;
 
 	Bracket cur_bracket(1);
@@ -340,46 +350,6 @@ std::vector<double> FiniteElementMatrix::DefVector(unsigned ind)
 	}
 
 }
-//----------------------------------------------------------------------------------------------------
-
-//-----------------Определение индексов n, m если заданы gamma и beta---------------------------------
-void FiniteElementMatrix::Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
-{
-	unsigned n, m;
-	if ((gamma==1)&&(beta==2))
-	{
-		n=3;
-		m=4;
-	}
-	if ((gamma==1)&&(beta==3))
-	{
-		n=2;
-		m=4;
-	}
-	if ((gamma==1)&&(beta==4))
-	{
-		n=2;
-		m=3;
-	}
-	if ((gamma==2)&&(beta==3))
-	{
-		n=1;
-		m=4;
-	}
-	if ((gamma==2)&&(beta==4))
-	{
-		n=1;
-		m=3;
-	}
-	if ((gamma==3)&&(beta==4))
-	{
-		n=1;
-		m=2;
-	}
-	vect.push_back(n);
-	vect.push_back(m);
-}
-//возвращает вектор, vect[0]=n, vect[1]=m; n<m;
 //----------------------------------------------------------------------------------------------------
 
 //----------------------------------------------------------------------------------------------------
@@ -773,9 +743,10 @@ void FiniteElementMatrix::NumMatrixInit()
 {
 	double u, v, w;
 	double x, y, z;
-	double I;
-	//Выделяю память под матрицу Эйлера
+	double I, R;
+	//Выделяю память под матрицу Эйлера и метрическую матрицу
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
+	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
 	//--------------------------------------------------
 
 	unsigned ilow, ihigh,
@@ -795,10 +766,16 @@ void FiniteElementMatrix::NumMatrixInit()
 	//при проходе по всем остальным элементам
 	std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
 
+	vector<Bracket> vectCur_RotEigFunc;       // роторы векторных функций
+	vector<Bracket> vectIn_RotEigFunc;
 	//--------------------Числовые векторы, соответсвующие собственным функциям и их роторам--------------------
 	vector<double> numCur_EigFunc;
 	vector<double> numIn_EigFunc;
+	vector<double> numCur_RotEigFunc;
+	vector<double> numIn_RotEigFunc;
 	//---------------------------------------------------------------------------------------------------------
+
+	Bracket cur_bracket, inner_bracket;
 
 	unsigned n1, m1, n2, m2;
 	vector<unsigned> nm1, nm2;
@@ -835,6 +812,17 @@ void FiniteElementMatrix::NumMatrixInit()
 								n1=nm1[0];
 								m1=nm1[1];
 
+								//Формирую скобку cur_bracket для текущего элемента, а именно перемножаю
+								//скобки массива m_CurVectBracket
+
+								cur_bracket=m_CurVectBracket[0];
+
+								for (unsigned counter=1; counter<m_CurVectBracket.size();counter++)
+								{
+									cur_bracket=cur_bracket*m_CurVectBracket[counter];
+								}
+
+								vectCur_RotEigFunc=RotorCalc(cur_bracket,n1,m1);
 							    //теперь запускаю внутрение циклы
 
 									for (unsigned in_gamma=1;in_gamma<=4;in_gamma++)
@@ -868,10 +856,19 @@ void FiniteElementMatrix::NumMatrixInit()
 																n2=nm2[0];
 																m2=nm2[1];
 
+																inner_bracket = m_InnerVectBracket[0];
+
+																for (unsigned counter=1;counter<m_InnerVectBracket.size();counter++)
+																{
+																	inner_bracket=inner_bracket*m_InnerVectBracket[counter];
+																}
+
+																vectIn_RotEigFunc=RotorCalc(inner_bracket,n2,m2);
+
 																nm2.clear();
 																//----------------Матрица Эйлера----------------------------
 
-																I=0;
+																I=0; R=0;
 																for (unsigned i=0;i<m_QuadOrder;i++)
 																{
 																	for (unsigned j=0;j<m_QuadOrder;j++)
@@ -888,16 +885,21 @@ void FiniteElementMatrix::NumMatrixInit()
 																			NumFormVectEigFunc(m_CurVectBracket, n1, m1, x, y, z, numCur_EigFunc);
 																			NumFormVectEigFunc(m_InnerVectBracket, n2, m2, x, y, z, numIn_EigFunc);
 
+																			VectBracketValue(vectCur_RotEigFunc, x, y, z, numCur_RotEigFunc);
+																			VectBracketValue(vectIn_RotEigFunc, x, y, z, numIn_RotEigFunc);
+
 																			elem=NumericalVectorTensorVectorProduct(numCur_EigFunc,numIn_EigFunc,m_MatrixEps);
 
 																			I+=elem*m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2.0)*v;
 
-																			//if ((count_columns==0)&&(count_rows==0)&&(i==0)&&(j==0)&&(k==0))
-																			//	cout << elem*m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2.0)*v << endl;
+																			elem=NumericalVectorTensorVectorProduct(numCur_RotEigFunc,numIn_RotEigFunc,m_MatrixMu);
+
+																			R+=elem*m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2.0)*v;
 																		}
 																	}
 																}
 																I*=pow(0.5,3);
+																R*=pow(0.5,3);
 
 																/*std::cout<< " Rows = " << count_rows;
 																std::cout<< " Columns = " << count_columns;
@@ -907,6 +909,7 @@ void FiniteElementMatrix::NumMatrixInit()
 																std::cout << std::endl;*/
 
 																*(m_NumEulerMatrix+m_MatrixSize*count_rows+count_columns)=I;
+																*(m_NumMetrMatrix+m_MatrixSize*count_rows+count_columns)=R;
 																//-------------------------------------------------------------------
 																count_columns++;
 																//-------------------------------------------------------
@@ -968,7 +971,22 @@ void FiniteElementMatrix::CompareMatrixs()
 		}
 		std::cout << std::endl;
 	}
-	std::cout << "============Max value of defference==============" << std::endl;
+	std::cout << "============Max value of difference==============" << std::endl;
+	std::cout << max << endl;
+
+	std::cout << "============MetrMatrix(i,j) - NumMetrMatrix(i,j)==============" << std::endl;
+	max=0;
+	for (unsigned i=0;i<m_MatrixSize;i++)
+	{
+		for (unsigned j=0;j<m_MatrixSize;j++)
+		{
+			std::cout<< "  " << *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
+			if (max < (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)))
+				max = *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
+		}
+		std::cout << std::endl;
+	}
+	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
 }
 

@@ -10,29 +10,16 @@
 #include <iterator>
 
 using namespace std;
-
+//-----¬озвращает значение произведени€ скобок при соответсвующих значени€х ksi1, ksi2, ksi3------
 double ProdVectBracketValue (vector<Bracket>& br, double ksi1, double ksi2, double ksi3)
 {
-	std::vector<GainPower_t> terms;
-
 	double result=1.0;
 	double S;
 
 	for (unsigned i=0;i<br.size();i++)
 	{
-		S=0;
-		terms=br[i].GetTerms();
-
-		for (unsigned j=0;j<br[i].BracketSize();j++)
-		{
-			S=S+terms[j].g*pow(ksi1,terms[j].p1)*
-				pow(ksi2,terms[j].p2)*
-				pow(ksi3,terms[j].p3)*
-				pow((1.0-ksi1-ksi2-ksi3),terms[j].p4);
-		}
+		S = BracketValue(br[i], ksi1, ksi2, ksi3);
 		result*=S;
-
-		terms.clear();
 	}
 	return result;
 }
@@ -145,3 +132,68 @@ double DefKsi(unsigned n, double ksi1, double ksi2, double ksi3)
 		result=1-ksi1-ksi2-ksi3;
 	return result;
 }
+//------------¬озвращает значение числовое скобки при ksi1, ksi2, ksi3 ------------------
+double BracketValue(Bracket& br, double ksi1, double ksi2, double ksi3)
+{
+	vector<GainPower_t> terms;
+	double S=0.0;
+	terms=br.GetTerms();
+
+	for (unsigned j=0;j<br.BracketSize();j++)
+	{
+		S=S+terms[j].g*pow(ksi1,terms[j].p1)*
+			pow(ksi2,terms[j].p2)*
+			pow(ksi3,terms[j].p3)*
+			pow((1.0-ksi1-ksi2-ksi3),terms[j].p4);
+	}
+	return S;
+}
+//----¬ векторе result возвращаетс€ числовое значени€ вектора, компонентами кот. €вл€ютс€ 
+// скобки при соответствующих значени€х ksi1, ksi2, ksi3
+void VectBracketValue(std::vector<Bracket>& br, double ksi1, double ksi2, double ksi3, std::vector<double>& result)
+{
+	result.clear();
+	for (unsigned i=0;i<br.size();i++)
+		result.push_back(BracketValue(br[i], ksi1, ksi2, ksi3));
+}
+
+//-----------------ќпределение индексов n, m если заданы gamma и beta---------------------------------
+// эта процедура используетс€ дл€ формировани€ базисных функций
+void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
+{
+	unsigned n, m;
+	if ((gamma==1)&&(beta==2))
+	{
+		n=3;
+		m=4;
+	}
+	if ((gamma==1)&&(beta==3))
+	{
+		n=2;
+		m=4;
+	}
+	if ((gamma==1)&&(beta==4))
+	{
+		n=2;
+		m=3;
+	}
+	if ((gamma==2)&&(beta==3))
+	{
+		n=1;
+		m=4;
+	}
+	if ((gamma==2)&&(beta==4))
+	{
+		n=1;
+		m=3;
+	}
+	if ((gamma==3)&&(beta==4))
+	{
+		n=1;
+		m=2;
+	}
+	vect.push_back(n);
+	vect.push_back(m);
+}
+//возвращает вектор, vect[0]=n, vect[1]=m; n<m;
+//----------------------------------------------------------------------------------------------------

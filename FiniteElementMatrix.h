@@ -13,8 +13,6 @@ public:
     static const unsigned m_CountPeaks=4;
     static const unsigned m_Dim=3;
     static const unsigned m_MaxOrderFact=25;
-	static const unsigned m_QuadOrder=15;            //Порядок квадратурных формул
-	//static const unsigned m_QuadOrder=2;
 
     FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu);
     virtual ~FiniteElementMatrix();
@@ -39,15 +37,10 @@ public:
 	double Integrate(Bracket& br);
 
 private:
-
+	    unsigned m_QuadOrder;            //Порядок квадратурных формул
         unsigned m_P;
 
         std::vector<double> DefVector(unsigned ind);
-        void Def_nm(unsigned gamma, unsigned beta, std::vector<unsigned>& vect);
-        //double m_Peaks[m_CountPeaks][m_Dim];       //массив координат (4) вершин тетраэдра
-
-        //double m_MatrixMu[m_Dim][m_Dim];    //Матрица тензора магнитной проницаемости
-        //double m_MatrixEps[m_Dim][m_Dim];    //Матрица тензора диэлектрической проницаемости
 
 		double** m_Peaks;       //массив координат (4) вершин тетраэдра 4(=m_CountPeaks) на 3(=m_Dim)
 
@@ -61,7 +54,8 @@ private:
 
         double *m_MetrMatrix;                    //Метрическая матрица
         double *m_EulerMatrix;                   //Матрица Эйлера
-		double *m_NumEulerMatrix;                //Матрица Эйлера при численном интегрировании  
+		double *m_NumEulerMatrix;                //Матрица Эйлера при численном интегрировании 
+		double *m_NumMetrMatrix;                //Метрическая матрица при численном интегрировании 
         unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Эйлера
 
         //Вычисление факториалов--------------------------------------------------------------------------------------------
@@ -91,6 +85,8 @@ private:
 		std::vector<double> m_Roots;
 
 		void CompareMatrixs();
+
+		double** m_ArrAllNodes;     //массив все собственных функций во всех узлах 
 };
 
 #endif // FINITEELEMENTMATRIX_H
