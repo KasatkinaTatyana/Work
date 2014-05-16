@@ -78,7 +78,7 @@ void Bracket::SetTerms(std::vector<GainPower_t>& terms)
 
 void Bracket::ShowElements()
 {
-    std::cout << "======================" << std::endl;
+    std::cout << "==================================================================" << std::endl;
     std::cout << "m_N = " << m_N << std::endl;
 
 	std::cout << "m_Terms = " << std::endl;
@@ -91,7 +91,7 @@ void Bracket::ShowElements()
 		std::cout << "  "<< m_Terms.at(i).p3 << "   ";
 		std::cout << "  "<< m_Terms.at(i).p4 << "   " << std::endl;
 	}
-    std::cout << "======================" << std::endl;
+    std::cout << "==================================================================" << std::endl;
 }
 
 Bracket Bracket::operator*(const Bracket& b)

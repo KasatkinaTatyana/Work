@@ -126,3 +126,14 @@ double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
 	}
 	return result;
 }
+
+//------------Вывод на экран вектора из элементов типа Bracket---------------------------------------------------
+//метод пока не работает !
+void ShowVectBracket(std::vector<Bracket>& vect_bracket)
+{
+	for (unsigned i=0;i<vect_bracket.size(); i++)
+	{
+		vect_bracket[i].ShowElements();
+		cout << endl;
+	}
+}

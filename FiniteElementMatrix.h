@@ -36,6 +36,9 @@ public:
 
 	double Integrate(Bracket& br);
 
+	void FormArrayAnalyt();
+	void FormArrayNum();
+
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул
         unsigned m_P;
@@ -85,8 +88,11 @@ private:
 		std::vector<double> m_Roots;
 
 		void CompareMatrixs();
-
-		double** m_ArrAllNodes;     //массив все собственных функций во всех узлах 
+		//-------------------------------------------------------------------------------------------------------------
+		double** m_Arr_AllNodes;     //массив все собственных функций во всех узлах 
+		
+		std::vector< std::vector<Bracket> > m_ArrAnalyt_EigFunc;
+		std::vector< std::vector<Bracket> > m_ArrAnalyt_RotEigFunc;
 };
 
 #endif // FINITEELEMENTMATRIX_H
