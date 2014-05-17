@@ -86,12 +86,14 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	}
 
 	//Чтение из файла корней полиномов Лежандра и весов
-	
+
 	double value;
 
-	m_QuadOrder=4;
-	string s_Roots="Roots4Nodes.txt";
-	string s_Weights="Weights4Nodes.txt";
+	m_QuadOrder=3;
+	string s_Roots="Roots3Nodes.txt";
+	string s_Weights="Weights3Nodes.txt";
+	Q3 = (int)pow(m_QuadOrder,3);
+	Q2 = (int)pow(m_QuadOrder,2);
 
 	// m_QuadOrder=15;
 	// s_Roots="Roots.txt";
@@ -113,15 +115,14 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	}
 	tfile.close();
 
+	FormArrayNum();
 	FormArrayAnalyt();
 
 	MatrixInit();
-	
+	ShowMatrixes();
 	NumMatrixInit();
-	//ShowMatrixes();
-	CompareMatrixs();
 
-	//FormArrayAnalyt();
+	CompareMatrixs();
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -138,6 +139,12 @@ FiniteElementMatrix::~FiniteElementMatrix()
 	{
 		delete[] m_MatrixEps[i];
 		delete[] m_MatrixMu[i];
+	}
+
+	for (unsigned i=0; i < m_MatrixSize*Q3; i++)
+	{
+		delete[] m_Arr_AllNodes[i];
+		delete[] m_Arr_RotAllNodes[i];
 	}
 }
 
@@ -514,7 +521,7 @@ std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, uns
 
 void FiniteElementMatrix::ShowMatrixes()
 {
-	std::cout << "============EulerMatrix==============" << std::endl;
+	std::cout << "============Analytical EulerMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
 		for (unsigned j=0;j<m_MatrixSize;j++)
@@ -525,7 +532,7 @@ void FiniteElementMatrix::ShowMatrixes()
 		std::cout << std::endl;
 	}
 
-	std::cout << "============MetrMatrix==============" << std::endl;
+	std::cout << "============Analytical MetrMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
 		for (unsigned j=0;j<m_MatrixSize;j++)
@@ -584,209 +591,56 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 	return result;
 }
 
-//-------------------------------Формирование матрицы Эйлера и метрической матрицы с использованием численного интегрирования-------
-//-------------------------------------------------код сильно повторяет метод MatrixInit()------------------------------------------
+//-------------------------Формирование матрицы Эйлера и метрической матрицы с использованием численного интегрирования-------
 void FiniteElementMatrix::NumMatrixInit()
 {
-	double u, v, w;
-	double x, y, z;
-	double I, R;
 	//Выделяю память под матрицу Эйлера и метрическую матрицу
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
 	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
 	//--------------------------------------------------
 
-	unsigned ilow, ihigh,
-		jlow, jhigh,
-		klow, khigh,
-		llow, lhigh;
+	double I, R, elem; 
+	double u, v;
 
-	unsigned in_ilow, in_ihigh,
-		in_jlow, in_jhigh,
-		in_klow, in_khigh,
-		in_llow, in_lhigh;
-
-	unsigned count_rows=0;
-	unsigned count_columns=0;
-
-	std::vector<Bracket> m_CurVectBracket;    //эта скобка соответсвует текущему элементу и будет храниться
-	//при проходе по всем остальным элементам
-	std::vector<Bracket> m_InnerVectBracket;  //эта скобка соответствует второму элементу (внутренний цикл)
-
-	vector<Bracket> vectCur_RotEigFunc;       // роторы векторных функций
-	vector<Bracket> vectIn_RotEigFunc;
-	//--------------------Числовые векторы, соответсвующие собственным функциям и их роторам--------------------
-	vector<double> numCur_EigFunc;
-	vector<double> numIn_EigFunc;
-	vector<double> numCur_RotEigFunc;
-	vector<double> numIn_RotEigFunc;
-	//---------------------------------------------------------------------------------------------------------
-
-	Bracket cur_bracket, inner_bracket;
-
-	unsigned n1, m1, n2, m2;
-	vector<unsigned> nm1, nm2;
-
-	double elem;
-
-	for (unsigned gamma=1;gamma<=4;gamma++)
+	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
-		for (unsigned beta = gamma+1;beta<=4;beta++)
+		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			findIndex(gamma, beta, 1, ilow, ihigh);
-			findIndex(gamma, beta, 2, jlow, jhigh);
-			findIndex(gamma, beta, 3, klow, khigh);
-			findIndex(gamma, beta, 4, llow, lhigh);
-
-			for (unsigned i=ilow;i<=ihigh;i++)
+			I=0;
+			R=0;
+			for (unsigned j_u=0; j_u<m_QuadOrder;j_u++)
 			{
-				for (unsigned j=jlow;j<=jhigh;j++)
+				for (unsigned j_v=0; j_v<m_QuadOrder;j_v++)
 				{
-					for (unsigned k=klow;k<=khigh;k++)
+					for (unsigned j_w=0; j_w<m_QuadOrder;j_w++)
 					{
-						for (unsigned l=llow;l<=lhigh;l++)
-						{
-							if ((i+j+k+l)==(m_P+2))
-							{
-								//В список добавляются 4 многочлена Сильвестра
-								//В список будут добавляться 4 многочлена Сильвестра
-								AddSilvester(gamma, beta, 1, i, m_CurVectBracket);
-								AddSilvester(gamma, beta, 2, j, m_CurVectBracket);
-								AddSilvester(gamma, beta, 3, k, m_CurVectBracket);
-								AddSilvester(gamma, beta, 4, l, m_CurVectBracket);
+						u=m_Roots[j_u];
+						v=m_Roots[j_v];
 
-								Def_nm(gamma,beta,nm1);
-								n1=nm1[0];
-								m1=nm1[1];
+						elem=NumericalVectorTensorVectorProduct(m_Arr_AllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+																m_Arr_AllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+																m_MatrixEps);
 
-								//Формирую скобку cur_bracket для текущего элемента, а именно перемножаю
-								//скобки массива m_CurVectBracket
+						I+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
 
-								cur_bracket=m_CurVectBracket[0];
+						elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+																m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+																m_MatrixMu);
 
-								for (unsigned counter=1; counter<m_CurVectBracket.size();counter++)
-								{
-									cur_bracket=cur_bracket*m_CurVectBracket[counter];
-								}
-
-								vectCur_RotEigFunc=RotorCalc(cur_bracket,n1,m1);
-							    //теперь запускаю внутрение циклы
-
-									for (unsigned in_gamma=1;in_gamma<=4;in_gamma++)
-									{
-										for (unsigned in_beta = in_gamma+1;in_beta<=4;in_beta++)
-										{  
-											findIndex(in_gamma, in_beta, 1, in_ilow, in_ihigh);
-											findIndex(in_gamma, in_beta, 2, in_jlow, in_jhigh);
-											findIndex(in_gamma, in_beta, 3, in_klow, in_khigh);
-											findIndex(in_gamma, in_beta, 4, in_llow, in_lhigh);
-
-											for (unsigned in_i=in_ilow;in_i<=in_ihigh;in_i++)
-											{
-												for (unsigned in_j=in_jlow;in_j<=in_jhigh;in_j++)
-												{
-													for (unsigned in_k=in_klow;in_k<=in_khigh;in_k++)
-													{
-														for (unsigned in_l=in_llow;in_l<=in_lhigh;in_l++)
-														{
-															if ((in_i+in_j+in_k+in_l)==(m_P+2))
-															{
-																//В список будут добавляться 4 многочлена Сильвестра
-																AddSilvester(in_gamma, in_beta, 1, in_i, m_InnerVectBracket);
-																AddSilvester(in_gamma, in_beta, 2, in_j, m_InnerVectBracket);
-																AddSilvester(in_gamma, in_beta, 3, in_k, m_InnerVectBracket);
-																AddSilvester(in_gamma, in_beta, 4, in_l, m_InnerVectBracket);
-
-																//теперь нужно добавить в список элемент свертки
-
-																Def_nm(in_gamma,in_beta,nm2);
-																n2=nm2[0];
-																m2=nm2[1];
-
-																inner_bracket = m_InnerVectBracket[0];
-
-																for (unsigned counter=1;counter<m_InnerVectBracket.size();counter++)
-																{
-																	inner_bracket=inner_bracket*m_InnerVectBracket[counter];
-																}
-
-																vectIn_RotEigFunc=RotorCalc(inner_bracket,n2,m2);
-
-																nm2.clear();
-																//----------------Матрица Эйлера----------------------------
-
-																I=0; R=0;
-																for (unsigned i=0;i<m_QuadOrder;i++)
-																{
-																	for (unsigned j=0;j<m_QuadOrder;j++)
-																	{
-																		for (unsigned k=0;k<m_QuadOrder;k++)
-																		{
-																			u=m_Roots[i];
-																			v=m_Roots[j];
-																			w=m_Roots[k];
-																			x = u*v*w;
-																			y = u*v*(1.0 - w);
-																			z = u*(1.0 - v);
-
-																			NumFormVectEigFunc(m_CurVectBracket, n1, m1, x, y, z, numCur_EigFunc);
-																			NumFormVectEigFunc(m_InnerVectBracket, n2, m2, x, y, z, numIn_EigFunc);
-
-																			VectBracketValue(vectCur_RotEigFunc, x, y, z, numCur_RotEigFunc);
-																			VectBracketValue(vectIn_RotEigFunc, x, y, z, numIn_RotEigFunc);
-
-																			elem=NumericalVectorTensorVectorProduct(numCur_EigFunc,numIn_EigFunc,m_MatrixEps);
-
-																			I+=elem*m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2.0)*v;
-
-																			elem=NumericalVectorTensorVectorProduct(numCur_RotEigFunc,numIn_RotEigFunc,m_MatrixMu);
-
-																			R+=elem*m_Weights[i]*m_Weights[j]*m_Weights[k]*pow(u,2.0)*v;
-																		}
-																	}
-																}
-																I*=pow(0.5,3);
-																R*=pow(0.5,3);
-
-																/*std::cout<< " Rows = " << count_rows;
-																std::cout<< " Columns = " << count_columns;
-																std::cout << std::endl;
-
-																std::cout<< " Euler_matr = " << Integrate(euler_br);
-																std::cout << std::endl;*/
-
-																*(m_NumEulerMatrix+m_MatrixSize*count_rows+count_columns)=I;
-																*(m_NumMetrMatrix+m_MatrixSize*count_rows+count_columns)=R;
-																//-------------------------------------------------------------------
-																count_columns++;
-																//-------------------------------------------------------
-																//----------------Удаление скобки------------------------
-																m_InnerVectBracket.clear();
-																//-------------------------------------------------------
-															}
-														}//l внутрениий
-													}//k внутренний
-												}//j внутренний
-											}//i внутренний
-										}//beta внутренний
-									}//gamma внутренний
-
-									nm1.clear();
-									m_CurVectBracket.clear();
-									count_rows++;
-									count_columns=0;
-							}//проверка условия (i+j+k+l==m_P+2)
-						}//l
-					}//k
-				}//j
-			}//i
-		}//beta
-	}//gamma
-	double test=0;
+						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
+					}//j_w
+				}//j_v
+			}//j_u
+		I*=pow(0.5,3);
+		R*=pow(0.5,3);
+		*(m_NumEulerMatrix+m_MatrixSize*i+j)=I;
+		*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
+		}
+	}
 }//NumMatrixInit
 
 void FiniteElementMatrix::NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
-										     double ksi1, double ksi2, double ksi3, 
+											 double ksi1, double ksi2, double ksi3, 
 											 std::vector<double>& result)
 {
 	result.clear();
@@ -916,18 +770,148 @@ void FiniteElementMatrix::FormArrayAnalyt()
 
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
-		cout << "Eigfunction " << "[" << i << "] = " << endl;
-		for (unsigned j=0;j<m_Dim;j++)
-			m_ArrAnalyt_EigFunc[i][j].ShowElements();
+	cout << "Eigfunction " << "[" << i << "] = " << endl;
+	for (unsigned j=0;j<m_Dim;j++)
+	m_ArrAnalyt_EigFunc[i][j].ShowElements();
 	}
 
 	cout << "Array of eigfunctions rotors" << endl;
 	cout << endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
-		cout << "Rotors of eigfunction " << "[" << i << "] = " << endl;
-		for (unsigned j=0;j<m_Dim;j++)
-			m_ArrAnalyt_RotEigFunc[i][j].ShowElements();
+	cout << "Rotors of eigfunction " << "[" << i << "] = " << endl;
+	for (unsigned j=0;j<m_Dim;j++)
+	m_ArrAnalyt_RotEigFunc[i][j].ShowElements();
 	}*/
 }
 
+//----------------Массив m_Arr_AllNodes заполняется элементами---------------------------
+//----------------Элементами являются значения собственных функций, вычисленные во------
+// всех узлах кубатурных формул. Массив 3 (=m_Dim) строки и m_MatrixSize*m_QuadOrder. Сначала
+//идет первая собственная функция, вычисленная во всех узлах, затем вторая и т. д.
+// Код метода сильно повторяет код метода FormArrAnalytical.
+void FiniteElementMatrix::FormArrayNum()
+{
+	//Выделение памяти
+	m_Arr_AllNodes = new double*[m_MatrixSize*Q3];
+	m_Arr_RotAllNodes = new double*[m_MatrixSize*Q3];
+	for (unsigned i=0;i<m_MatrixSize*Q3;i++)
+	{
+		m_Arr_AllNodes[i] = new double[m_Dim];
+		m_Arr_RotAllNodes[i] = new double[m_Dim];
+	}
+	//----------------------------------------------------
+	double u, v, w;
+	double x, y, z;
+
+	unsigned ilow, ihigh,
+		jlow, jhigh,
+		klow, khigh,
+		llow, lhigh;
+
+	std::vector<Bracket> vect_bracket;    
+
+	vector<Bracket> vect_RotEigFunc;       // ротор векторной функции
+	//--------------------Числовые векторы, соответсвующие собственным функциям и их роторам--------------------
+	vector<double> num_EigFunc;
+
+	vector<double> num_RotEigFunc;
+	//---------------------------------------------------------------------------------------------------------
+	Bracket cur_bracket;
+
+	unsigned n1, m1;
+	vector<unsigned> nm1;
+
+	int elems_count=0;
+
+	for (unsigned gamma=1;gamma<=4;gamma++)
+	{
+		for (unsigned beta = gamma+1;beta<=4;beta++)
+		{
+			findIndex(gamma, beta, 1, ilow, ihigh);
+			findIndex(gamma, beta, 2, jlow, jhigh);
+			findIndex(gamma, beta, 3, klow, khigh);
+			findIndex(gamma, beta, 4, llow, lhigh);
+
+			for (unsigned i=ilow;i<=ihigh;i++)
+			{
+				for (unsigned j=jlow;j<=jhigh;j++)
+				{
+					for (unsigned k=klow;k<=khigh;k++)
+					{
+						for (unsigned l=llow;l<=lhigh;l++)
+						{
+							if ((i+j+k+l)==(m_P+2))
+							{
+								//В список добавляются 4 многочлена Сильвестра
+								//В список будут добавляться 4 многочлена Сильвестра
+								AddSilvester(gamma, beta, 1, i, vect_bracket);
+								AddSilvester(gamma, beta, 2, j, vect_bracket);
+								AddSilvester(gamma, beta, 3, k, vect_bracket);
+								AddSilvester(gamma, beta, 4, l, vect_bracket);
+
+								Def_nm(gamma,beta,nm1);
+								n1=nm1[0];
+								m1=nm1[1];
+
+								//Формирую скобку cur_bracket для текущего элемента, а именно перемножаю
+								//скобки массива vect_bracket
+
+								cur_bracket=vect_bracket[0];
+
+								for (unsigned counter=1; counter<vect_bracket.size();counter++)
+								{
+									cur_bracket=cur_bracket*vect_bracket[counter];
+								}
+
+								vect_RotEigFunc=RotorCalc(cur_bracket,n1,m1);
+
+								for (unsigned j_u=0; j_u<m_QuadOrder;j_u++)
+								{
+									for (unsigned j_v=0; j_v<m_QuadOrder;j_v++)
+									{
+										for (unsigned j_w=0; j_w<m_QuadOrder;j_w++)
+										{
+											u=m_Roots[j_u];
+											v=m_Roots[j_v];
+											w=m_Roots[j_w];
+											x = u*v*w;
+											y = u*v*(1.0 - w);
+											z = u*(1.0 - v);
+
+											NumFormVectEigFunc(vect_bracket, n1, m1, x, y, z, num_EigFunc);
+											VectBracketValue(vect_RotEigFunc, x, y, z, num_RotEigFunc);
+
+											for (unsigned d=0;d<m_Dim;d++)
+											{
+												m_Arr_AllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_EigFunc[d];
+												m_Arr_RotAllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_RotEigFunc[d];
+											}//d
+										}//j_w
+									}//j_v
+								}//j_u
+							}//проверка условия (i+j+k+l==m_P+2)
+							elems_count++;
+							nm1.clear();
+							vect_bracket.clear();
+						}//l
+					}//k
+				}//j
+			}//i
+		}//beta
+	}//gamma
+	display(m_MatrixSize*Q3,m_Dim,m_Arr_AllNodes);
+}//FormArrayNum
+
+void FiniteElementMatrix::display(unsigned rows, unsigned columns, double** arr)
+{
+	for (unsigned i=0;i<rows;i++)
+	{
+		for (unsigned j=0;j<columns; j++)
+		{
+			cout << arr[i][j] << "   ";
+		}
+		cout << endl;
+	}
+	system("pause");
+}

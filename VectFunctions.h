@@ -18,5 +18,6 @@ void SumVector(std::vector<double>& sum,const std::vector<double> added);
 double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
                                           std::vector<double>& vect2, double** M);
 
-void ShowVectBracket(std::vector<Bracket>& vect_bracket);
+double NumericalVectorTensorVectorProduct(double* arr1,
+                                          double* arr2, double** M);
 #endif // VECTFUNCTIONS_H

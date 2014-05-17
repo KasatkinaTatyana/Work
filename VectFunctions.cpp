@@ -127,13 +127,24 @@ double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
 	return result;
 }
 
-//------------Вывод на экран вектора из элементов типа Bracket---------------------------------------------------
-//метод пока не работает !
-void ShowVectBracket(std::vector<Bracket>& vect_bracket)
+//-----------------------------Произведение числового вектора, матрицы и числового вектора------------------------------------
+double NumericalVectorTensorVectorProduct(double* arr1,
+                                          double* arr2, double** M)
 {
-	for (unsigned i=0;i<vect_bracket.size(); i++)
+	unsigned m_Dim=3;
+	double s;
+	double result=0.0;
+
+	for (unsigned k=0;k<m_Dim;k++)
 	{
-		vect_bracket[i].ShowElements();
-		cout << endl;
+		s=0.0;
+		for (unsigned i=0;i<m_Dim;i++)
+		{
+			s+=M[i][k]*arr1[i];
+		}
+		result+=s*arr2[k];
 	}
+	return result;
 }
+
+

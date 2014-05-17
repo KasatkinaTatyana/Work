@@ -41,6 +41,9 @@ public:
 
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул
+		int Q2;
+		int Q3;
+
         unsigned m_P;
 
         std::vector<double> DefVector(unsigned ind);
@@ -81,7 +84,6 @@ private:
 
         //Якобиан замены координат
         double m_Icob;
-
 		//-----------------------------------------------------------------------------------------------------------------
 		//Массивы корней полиномов Лежандра и весов для численного интегрирования
 		std::vector<double> m_Weights;
@@ -89,10 +91,13 @@ private:
 
 		void CompareMatrixs();
 		//-------------------------------------------------------------------------------------------------------------
-		double** m_Arr_AllNodes;     //массив все собственных функций во всех узлах 
+		double** m_Arr_AllNodes;     //массив всех собственных функций и их роторов во всех узлах 
+		double** m_Arr_RotAllNodes;
 		
 		std::vector< std::vector<Bracket> > m_ArrAnalyt_EigFunc;
 		std::vector< std::vector<Bracket> > m_ArrAnalyt_RotEigFunc;
+
+		void display(unsigned rows, unsigned columns, double** arr);
 };
 
 #endif // FINITEELEMENTMATRIX_H
