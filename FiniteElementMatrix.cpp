@@ -9,6 +9,9 @@
 #include <cstdlib>
 #include <ctime>
 
+#include <tchar.h>
+#include <windows.h>
+
 using namespace std;
 
 FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu) : m_P(p)
@@ -89,9 +92,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 	double value;
 
-	m_QuadOrder=3;
-	string s_Roots="Roots3Nodes.txt";
-	string s_Weights="Weights3Nodes.txt";
+	m_QuadOrder=4;
+	string s_Roots="Roots4Nodes.txt";
+	string s_Weights="Weights4Nodes.txt";
 	Q3 = (int)pow(m_QuadOrder,3);
 	Q2 = (int)pow(m_QuadOrder,2);
 
@@ -116,12 +119,12 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	tfile.close();
 
 	FormArrayNum();
-	FormArrayAnalyt();
-
-	MatrixInit();
-	ShowMatrixes();
 	NumMatrixInit();
 
+	FormArrayAnalyt();
+	MatrixInit();
+
+	//ShowMatrixes();	
 	CompareMatrixs();
 }
 
@@ -165,6 +168,10 @@ void FiniteElementMatrix::findIndex(unsigned gamma, unsigned beta, unsigned orde
 
 void FiniteElementMatrix::MatrixInit()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-----------------------------------------------------------------------------------------------
 	//Выделяю память под матрицу (метрическая и Эйлера)
 
 	m_MetrMatrix = new double[m_MatrixSize*m_MatrixSize];
@@ -184,6 +191,11 @@ void FiniteElementMatrix::MatrixInit()
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(metr_br);
 		}
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "MatrixInit: ellapsed time = " << msTime << endl;
 }//MatrixInit
 
 void FiniteElementMatrix::AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket)
@@ -594,6 +606,10 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 //-------------------------Формирование матрицы Эйлера и метрической матрицы с использованием численного интегрирования-------
 void FiniteElementMatrix::NumMatrixInit()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-------------------------------------------------------------------------------------------------
 	//Выделяю память под матрицу Эйлера и метрическую матрицу
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
 	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
@@ -637,6 +653,11 @@ void FiniteElementMatrix::NumMatrixInit()
 		*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
 		}
 	}
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "NumMatrixInit: ellapsed time = " << msTime << endl;
 }//NumMatrixInit
 
 void FiniteElementMatrix::NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
@@ -660,40 +681,45 @@ void FiniteElementMatrix::NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsi
 
 void FiniteElementMatrix::CompareMatrixs()
 {
-	std::cout << "============EulerMatrix(i,j) - NumEulerMatrix(i,j)==============" << std::endl;
 	double max=0;
+	std::cout << "============EulerMatrix(i,j) - NumEulerMatrix(i,j)==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			std::cout<< "  " << *(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j);
-			if (max < (*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j)))
-				max = *(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j);
+			//std::cout<< "  " << *(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j);
+			if (max < abs( (*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j)) ) )
+				max = abs(*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j));
 		}
 		std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
 
-	std::cout << "============MetrMatrix(i,j) - NumMetrMatrix(i,j)==============" << std::endl;
 	max=0;
+	std::cout << "============MetrMatrix(i,j) - NumMetrMatrix(i,j)==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			std::cout<< "  " << *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
-			if (max < (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)))
-				max = *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
+			//std::cout<< "  " << *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
+			if (max < abs( (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)) ) )
+				max = abs(*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j));
 		}
 		std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
 }
+
 //------------------------------Массив m_ArrAnalytEigFunc заполняется элементами------------------------
 //------------элементами массива являются векторные собственные функции---------------------------------
 void FiniteElementMatrix::FormArrayAnalyt()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-------------------------------------------------------------------------------------------------
 	unsigned ilow, ihigh,
 		jlow, jhigh,
 		klow, khigh,
@@ -763,6 +789,11 @@ void FiniteElementMatrix::FormArrayAnalyt()
 			}//i
 		}//beta
 	}//gamma
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "FormArrayAnalyt: ellapsed time = " << msTime << endl;
 
 	//---------------------Вывод на консоль---------------------------------
 	/*cout << "Array of eigfunctions:" << endl;
@@ -785,6 +816,8 @@ void FiniteElementMatrix::FormArrayAnalyt()
 	}*/
 }
 
+
+
 //----------------Массив m_Arr_AllNodes заполняется элементами---------------------------
 //----------------Элементами являются значения собственных функций, вычисленные во------
 // всех узлах кубатурных формул. Массив 3 (=m_Dim) строки и m_MatrixSize*m_QuadOrder. Сначала
@@ -792,6 +825,10 @@ void FiniteElementMatrix::FormArrayAnalyt()
 // Код метода сильно повторяет код метода FormArrAnalytical.
 void FiniteElementMatrix::FormArrayNum()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-------------------------------------------------------------------------------------------------
 	//Выделение памяти
 	m_Arr_AllNodes = new double*[m_MatrixSize*Q3];
 	m_Arr_RotAllNodes = new double*[m_MatrixSize*Q3];
@@ -890,17 +927,22 @@ void FiniteElementMatrix::FormArrayNum()
 										}//j_w
 									}//j_v
 								}//j_u
+								elems_count++;
+								nm1.clear();
+								vect_bracket.clear();
 							}//проверка условия (i+j+k+l==m_P+2)
-							elems_count++;
-							nm1.clear();
-							vect_bracket.clear();
 						}//l
 					}//k
 				}//j
 			}//i
 		}//beta
 	}//gamma
-	display(m_MatrixSize*Q3,m_Dim,m_Arr_AllNodes);
+	//display(m_MatrixSize*Q3,m_Dim,m_Arr_AllNodes);
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "FormArrayNum: ellapsed time = " << msTime << endl;
 }//FormArrayNum
 
 void FiniteElementMatrix::display(unsigned rows, unsigned columns, double** arr)
