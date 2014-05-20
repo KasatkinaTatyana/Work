@@ -11,16 +11,24 @@
 #include <algorithm>
 #include <iterator>
 
+#include <tchar.h>
+#include <windows.h>
+
 
 using namespace std;
 
 void test_bracket(unsigned N, unsigned p_i, double g_i);
-void test_simplify(unsigned N, unsigned p_i, double g_i);
+void test_simplify_ptr();
+void test_simplify_old();
 void test_prod();
 //void test_vectBracket(unsigned N, unsigned p_i, double g_i);
 void test_Matrixes();
 //void test_integrate();
 void display(unsigned rows, unsigned columns, double** arr);
+void test_Mult();
+void test_MultOld();
+void StartTimeMeasure(LARGE_INTEGER& StartPerformCount);
+double StopTimeMeasure(LARGE_INTEGER& StartPerformCount);
 
 //------------------------------------------------------------------
 
@@ -30,8 +38,22 @@ int main(int argc, char *argv[])
 	//test_simplify(2,1,1);
     //test_vectBracket(2,1,1);
 	//test_prod();
-	test_Matrixes();
+	//test_Matrixes();
 	//test_integrate();
+	LARGE_INTEGER StartPerformCount;
+	StartTimeMeasure(StartPerformCount);
+	for (unsigned i=0; i<500; i++)
+		//test_Mult();
+		test_simplify_ptr();
+	double msTime = StopTimeMeasure(StartPerformCount);
+	cout << "Ellapsed time = " << msTime << endl;
+
+	StartTimeMeasure(StartPerformCount);
+	for (unsigned i=0; i<500; i++)
+		//test_MultOld();
+		test_simplify_old();
+	msTime = StopTimeMeasure(StartPerformCount);
+	cout << "Ellapsed time old method = " << msTime << endl;
 	system("pause");
     return 0;
 }
@@ -403,4 +425,110 @@ void display(unsigned rows, unsigned columns, double** arr)
 			cout << arr[i][j] << "  ";
 		cout << endl;
 	}
+}
+
+void test_Mult()
+{
+	GainPower_t trm={1.0, 1, 0, 1, 0};
+	std::vector<GainPower_t> terms(1,trm);
+
+	for (unsigned i=0;i<36;i++)
+	{
+		terms.push_back(trm);
+	} 
+
+	Bracket br1(terms);
+
+	GainPower_t trm_1={4.0, 1, 2, 1, 3};
+	terms.push_back(trm_1);
+	for (unsigned i=0;i<36;i++)
+	{
+		terms.push_back(trm_1);
+	}
+	Bracket br2(terms);
+
+	unsigned D=br1.BracketSize()*br2.BracketSize();
+	Bracket br3(D);
+	Mult(&br1, &br2, &br3);
+	//br3.ShowElements();
+}
+
+void test_MultOld()
+{
+	GainPower_t trm={1.0, 1, 0, 1, 0};
+	std::vector<GainPower_t> terms(1,trm);
+	for (unsigned i=0;i<36;i++)
+	{
+		terms.push_back(trm);
+	} 
+	Bracket br1(terms);
+
+	GainPower_t trm_1={4.0, 1, 2, 1, 3};
+	terms.push_back(trm_1);
+	for (unsigned i=0;i<36;i++)
+	{
+		terms.push_back(trm_1);
+	}
+	Bracket br2(terms);
+
+	Bracket br3=br1*br2;
+	
+	//br3.ShowElements();
+}
+
+void StartTimeMeasure(LARGE_INTEGER& StartPerformCount)
+{
+	QueryPerformanceCounter (&StartPerformCount);
+}
+
+double StopTimeMeasure(LARGE_INTEGER& StartPerformCount)
+{
+	LARGE_INTEGER Frequency, StopPerformCount;
+	QueryPerformanceCounter (&StopPerformCount);
+	QueryPerformanceFrequency(&Frequency);
+	return ((double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3);
+}
+
+void test_simplify_ptr()
+{
+	std::vector<GainPower_t> terms;
+	GainPower_t trm1={1.0, 1, 1, 0, 0};
+	GainPower_t trm2={2.0, 1, 1, 0, 0};
+	GainPower_t trm3={5.0, 1, 1, 1, 1};
+	GainPower_t trm4={0.0, 0, 1, 0, 0};
+	GainPower_t trm5={3.0, 1, 1, 0, 0};
+	for (unsigned i=0;i<10;i++)
+	{
+		terms.push_back(trm1);
+		terms.push_back(trm2);
+		terms.push_back(trm3);
+		terms.push_back(trm4);
+		terms.push_back(trm5);
+	}
+
+	Bracket br(terms);
+	SimplifyBracketPtr(&br);
+	//br.ShowElements();
+}
+
+void test_simplify_old()
+{
+	std::vector<GainPower_t> terms;
+	GainPower_t trm1={1.0, 1, 1, 0, 0};
+	GainPower_t trm2={2.0, 1, 1, 0, 0};
+	GainPower_t trm3={5.0, 1, 1, 1, 1};
+	GainPower_t trm4={0.0, 0, 1, 0, 0};
+	GainPower_t trm5={3.0, 1, 1, 0, 0};
+	for (unsigned i=0;i<10;i++)
+	{
+		terms.push_back(trm1);
+		terms.push_back(trm2);
+		terms.push_back(trm3);
+		terms.push_back(trm4);
+		terms.push_back(trm5);
+	}
+
+	Bracket br(terms);
+	SimplifyBracket(br);
+	//br.ShowElements();
 }

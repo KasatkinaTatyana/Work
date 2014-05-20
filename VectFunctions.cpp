@@ -54,8 +54,8 @@ double ScalarProduct(std::vector<double> a, std::vector<double> b)
 }
 
 //--------------Произведение вектора, тензора и вектора в общем виде----------------------------------
-Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
-                                                              std::vector<Bracket>& vect2, double** M)
+void GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
+									  std::vector<Bracket>& vect2, double** M, Bracket& result)
 {
     double m_Dim=3;
 
@@ -64,7 +64,9 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 	GainPower_t trm={0.0, 0, 0, 0, 0};
 	zero_terms.push_back(trm);
 
-    Bracket result(1);
+    //Bracket result(1);
+
+	result.SetTerms(zero_terms);
 
     Bracket br_product(1);
 
@@ -83,7 +85,6 @@ Bracket GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 
         result=result+br_sum;
     }
-    return result;
 }
 
 //Числовой вектор vect умножается на число number

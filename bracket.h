@@ -40,9 +40,22 @@ public:
 	void BracketInit(std::vector<GainPower_t>& terms);
     void BracketCleanUp();
     unsigned BracketSize() {return m_N;}
+	void SetBracketSize(unsigned N) {m_N = N;}
 
 	std::vector<GainPower_t> GetTerms();
+
+	GainPower_t& TermsElement(unsigned pos)
+	{
+		return m_Terms.at(pos);
+	}
+
+	std::vector<GainPower_t>* Terms()
+	{
+		return &m_Terms;
+	}
+
     void SetTerms(std::vector<GainPower_t>& terms);
+	void SetTermsPtr(std::vector<GainPower_t>* terms);
 
     void ShowElements();
 
@@ -60,10 +73,13 @@ public:
 
     Bracket& operator=(const Bracket& right);
 
+	Bracket(const Bracket& obj);
 private:
 	std::vector<GainPower_t> m_Terms;  //скобка представляет собой вектор одночленов (m_Terms)
 
     unsigned m_N;
 };
+
+void Mult(Bracket* a, Bracket* b, Bracket* result); 
 
 #endif // BRACKET_H

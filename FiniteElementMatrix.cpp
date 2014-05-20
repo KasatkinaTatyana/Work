@@ -166,11 +166,14 @@ void FiniteElementMatrix::findIndex(unsigned gamma, unsigned beta, unsigned orde
 	}
 }
 
+
+
 void FiniteElementMatrix::MatrixInit()
 {
 	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
 	int bHighRes = QueryPerformanceFrequency (&Frequency);
 	QueryPerformanceCounter (&StartPerformCount);
+
 	//-----------------------------------------------------------------------------------------------
 	//Выделяю память под матрицу (метрическая и Эйлера)
 
@@ -178,23 +181,24 @@ void FiniteElementMatrix::MatrixInit()
 	m_EulerMatrix = new double[m_MatrixSize*m_MatrixSize];
 
 	//--------------------------------------------------
-	Bracket euler_br, metr_br;
+	Bracket euler_br, metr_br;   //в эти скобки будет записываться результат произведения собственная функция 
+	// на тензор на собсвенную функцию 
 
 	for (unsigned i=0;i<m_MatrixSize;i++)
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			euler_br=GeneralVectorTensorVectorProduct(m_ArrAnalyt_EigFunc[i],m_ArrAnalyt_EigFunc[j],m_MatrixEps);
+			GeneralVectorTensorVectorProduct(m_ArrAnalyt_EigFunc[i],m_ArrAnalyt_EigFunc[j],m_MatrixEps,euler_br);
 
 			*(m_EulerMatrix+m_MatrixSize*i+j)=Integrate(euler_br);
 
-			metr_br=GeneralVectorTensorVectorProduct(m_ArrAnalyt_RotEigFunc[i],m_ArrAnalyt_RotEigFunc[j],m_MatrixMu);
+			GeneralVectorTensorVectorProduct(m_ArrAnalyt_RotEigFunc[i],m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,metr_br);
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(metr_br);
 		}
 	//-------------------------------------------------------------------------------------------
+
 	QueryPerformanceCounter (&StopPerformCount);
 	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
-
 	cout << "MatrixInit: ellapsed time = " << msTime << endl;
 }//MatrixInit
 
@@ -691,7 +695,7 @@ void FiniteElementMatrix::CompareMatrixs()
 			if (max < abs( (*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j)) ) )
 				max = abs(*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j));
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
@@ -706,7 +710,7 @@ void FiniteElementMatrix::CompareMatrixs()
 			if (max < abs( (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)) ) )
 				max = abs(*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j));
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
