@@ -691,7 +691,7 @@ void FiniteElementMatrix::CompareMatrixs()
 			if (max < abs( (*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j)) ) )
 				max = abs(*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j));
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
@@ -706,7 +706,7 @@ void FiniteElementMatrix::CompareMatrixs()
 			if (max < abs( (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)) ) )
 				max = abs(*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j));
 		}
-		std::cout << std::endl;
+		//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
