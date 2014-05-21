@@ -34,6 +34,7 @@ class Bracket
 public:
     Bracket(unsigned N = 0);
     Bracket(std::vector<GainPower_t>& terms);
+	Bracket::Bracket(unsigned N, unsigned M);   //конструктор, который резервирует M позиций под вектор
 
     virtual ~Bracket();
     void BracketInit(unsigned N);

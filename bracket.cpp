@@ -18,6 +18,12 @@ Bracket::Bracket(unsigned N) : m_N(N)
 	BracketInit(N);
 }
 
+Bracket::Bracket(unsigned N, unsigned M)
+{
+	m_Terms.reserve(M);
+	BracketInit(N);
+}
+
 Bracket::Bracket(std::vector<GainPower_t>& terms)
 {
 	BracketInit(terms);
