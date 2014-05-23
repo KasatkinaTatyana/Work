@@ -18,25 +18,30 @@ struct _GainPower {
     int p4;               //степень переменной ksi_4  
 };
 
-struct _Power {
+/*struct _Power {
     int p1;               //степень переменной ksi_1  
     int p2;               //степень переменной ksi_2  
     int p3;               //степень переменной ksi_3  
     int p4;               //степень переменной ksi_4  
-};
+};*/
 
 typedef struct _GainPower GainPower_t;
-typedef struct _Power Power_t;
+//typedef struct _Power Power_t;
 
 
 class Bracket
 {
 public:
+	static const GainPower_t zero_term;
+	static const unsigned unity;
+
     Bracket(unsigned N = 0);
     Bracket(std::vector<GainPower_t>& terms);
-	Bracket::Bracket(unsigned N, unsigned M);   //конструктор, который резервирует M позиций под вектор
+	Bracket::Bracket(unsigned N, unsigned M);   //конструктор, который резервирует M позиций под вектор, 
+	//а инициализирует вектор из N компонентов
 
     virtual ~Bracket();
+
     void BracketInit(unsigned N);
 	void BracketInit(std::vector<GainPower_t>& terms);
     void BracketCleanUp();
@@ -50,7 +55,7 @@ public:
 		return m_Terms.at(pos);
 	}
 
-	std::vector<GainPower_t>* Terms()
+	std::vector<GainPower_t>* GetTermsPtr()
 	{
 		return &m_Terms;
 	}
@@ -75,6 +80,11 @@ public:
     Bracket& operator=(const Bracket& right);
 
 	Bracket(const Bracket& obj);
+
+	void SetSizePtr(unsigned* s);
+
+	void Plus(Bracket* added);
+
 private:
 	std::vector<GainPower_t> m_Terms;  //скобка представляет собой вектор одночленов (m_Terms)
 
@@ -82,5 +92,7 @@ private:
 };
 
 void Mult(Bracket* a, Bracket* b, Bracket* result); 
+void Plus(Bracket* a, Bracket* b, Bracket* result);
 
+void Mult(Bracket* br, double* numb, Bracket* result);
 #endif // BRACKET_H

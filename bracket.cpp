@@ -13,6 +13,9 @@
 
 using namespace std;
 
+const GainPower_t Bracket::zero_term = {0.0, 0, 0, 0, 0};
+const unsigned Bracket::unity = 1;
+
 Bracket::Bracket(unsigned N) : m_N(N)
 {
 	BracketInit(N);
@@ -21,6 +24,7 @@ Bracket::Bracket(unsigned N) : m_N(N)
 Bracket::Bracket(unsigned N, unsigned M)
 {
 	m_Terms.reserve(M);
+
 	BracketInit(N);
 }
 
@@ -39,12 +43,7 @@ void Bracket::BracketInit(unsigned N)
 	if (N!=0)
 	{
 		m_N=N;
-	}
-	for (unsigned i=0;i<m_N;i++)
-	{
-		GainPower_t GP = {0.0, 0, 0, 0, 0};
-
-		m_Terms.push_back(GP);
+		m_Terms.assign(N, zero_term);
 	}
 }
 
@@ -62,6 +61,7 @@ void Bracket::BracketInit(std::vector<GainPower_t>& terms)
 void Bracket::BracketCleanUp()
 {
 	m_Terms.clear();
+	m_N=0;
 }
 
 
@@ -235,20 +235,40 @@ Bracket::Bracket(const Bracket& obj)
 	//cout << "Copy!" << endl;
 }
 
+//Текущая скобка превращается в скобку с нулевыми элементами размера s
+void Bracket::SetSizePtr(unsigned* s)
+{
+	m_Terms.clear();
+	m_Terms.assign(*s,zero_term);
+	m_N = *s;
+}
+//К текущей скобка прибавляется скобка added
+void Bracket::Plus(Bracket* added)
+{
+	unsigned L=added->BracketSize();
+	m_N = m_N + L;
+	std::vector<GainPower_t>* aTerms = added->GetTermsPtr();
+	copy(aTerms->begin(), aTerms->end(), inserter(m_Terms,m_Terms.end()));
+	SimplifyBracketPtr(this);
+}
+
+// В переменную result записывается значение a*b. Выражения вида (x, y, x) в таком варианте вычисляются некорректно
+// все переменные a, b, result должны быть разными объектами
 void Mult(Bracket* a, Bracket* b, Bracket* result)
 {
-	unsigned M = a->BracketSize()*b->BracketSize();
 	unsigned L = a->BracketSize();
 	unsigned N = b->BracketSize();
+	unsigned M = L*N;
 	
 	//Bracket *result = new Bracket(M);
+	result->SetSizePtr(&M);
 
 	unsigned offset;
 	double Ai, Bj, Cij;
 
-	std::vector<GainPower_t>* aTerms = a->Terms();
-	std::vector<GainPower_t>* bTerms = b->Terms();
-	std::vector<GainPower_t>* rTerms = result->Terms();
+	std::vector<GainPower_t>* aTerms = a->GetTermsPtr();
+	std::vector<GainPower_t>* bTerms = b->GetTermsPtr();
+	std::vector<GainPower_t>* rTerms = result->GetTermsPtr();
 
 	for(unsigned i = 0; i < L; i++)
 	{
@@ -273,3 +293,57 @@ void Mult(Bracket* a, Bracket* b, Bracket* result)
 
 	SimplifyBracketPtr(result);
 }
+
+void Plus(Bracket* a, Bracket* b, Bracket* result)
+{
+	unsigned M = a->BracketSize() + b->BracketSize();
+	unsigned L = a->BracketSize();
+	unsigned N = b->BracketSize();
+	
+	//Bracket *result = new Bracket(M);
+	result->SetSizePtr(&M);
+
+	std::vector<GainPower_t>* aTerms = a->GetTermsPtr();
+	std::vector<GainPower_t>* bTerms = b->GetTermsPtr();
+	std::vector<GainPower_t>* rTerms = result->GetTermsPtr();
+
+	for (unsigned i=0;i<L;i++)
+	{
+		rTerms->at(i).g=aTerms->at(i).g;
+		rTerms->at(i).p1=aTerms->at(i).p1;
+		rTerms->at(i).p2=aTerms->at(i).p2;
+		rTerms->at(i).p3=aTerms->at(i).p3;
+		rTerms->at(i).p4=aTerms->at(i).p4;
+	}
+
+	for (unsigned i=0;i<N;i++)
+	{
+		rTerms->at(i+L).g=bTerms->at(i).g;
+		rTerms->at(i+L).p1=bTerms->at(i).p1;
+		rTerms->at(i+L).p2=bTerms->at(i).p2;
+		rTerms->at(i+L).p3=bTerms->at(i).p3;
+		rTerms->at(i+L).p4=bTerms->at(i).p4;
+	}
+	SimplifyBracketPtr(result);
+}
+
+void Mult(Bracket* br, double* numb, Bracket* result)
+{
+	unsigned N=br->BracketSize();
+
+	result->SetSizePtr(&N);
+
+	std::vector<GainPower_t>* brTerms = br->GetTermsPtr();
+	std::vector<GainPower_t>* rTerms = result->GetTermsPtr();
+
+
+	for (unsigned i=0;i<N;i++)
+	{
+		rTerms->at(i).g=brTerms->at(i).g*(*numb);
+		rTerms->at(i).p1=brTerms->at(i).p1;
+		rTerms->at(i).p2=brTerms->at(i).p2;
+		rTerms->at(i).p3=brTerms->at(i).p3;
+		rTerms->at(i).p4=brTerms->at(i).p4;
+	}
+}
+

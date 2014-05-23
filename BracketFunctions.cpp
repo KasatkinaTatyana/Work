@@ -120,7 +120,7 @@ void SimplifyBracket(Bracket& br)
 
 void SimplifyBracketPtr(Bracket* br)
 {
-	vector<GainPower_t>* GP = br->Terms();
+	vector<GainPower_t>* GP = br->GetTermsPtr();
 
 	sort(GP->begin(),GP->end(),comparefun); //сортировка массива
 	//удаление слагаемых с нулевыми коэффициентами
@@ -264,3 +264,4 @@ void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 }
 //возвращает вектор, vect[0]=n, vect[1]=m; n<m;
 //----------------------------------------------------------------------------------------------------
+

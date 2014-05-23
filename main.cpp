@@ -29,6 +29,7 @@ void test_Mult();
 void test_MultOld();
 void StartTimeMeasure(LARGE_INTEGER& StartPerformCount);
 double StopTimeMeasure(LARGE_INTEGER& StartPerformCount);
+void test_operationsPtr();
 
 //------------------------------------------------------------------
 
@@ -38,22 +39,11 @@ int main(int argc, char *argv[])
 	//test_simplify(2,1,1);
     //test_vectBracket(2,1,1);
 	//test_prod();
-	//test_Matrixes();
-	//test_integrate();
-	LARGE_INTEGER StartPerformCount;
-	StartTimeMeasure(StartPerformCount);
-	for (unsigned i=0; i<500; i++)
-		//test_Mult();
-		test_simplify_ptr();
-	double msTime = StopTimeMeasure(StartPerformCount);
-	cout << "Ellapsed time = " << msTime << endl;
 
-	StartTimeMeasure(StartPerformCount);
-	for (unsigned i=0; i<500; i++)
-		//test_MultOld();
-		test_simplify_old();
-	msTime = StopTimeMeasure(StartPerformCount);
-	cout << "Ellapsed time old method = " << msTime << endl;
+	test_Matrixes();
+
+	//test_integrate();
+	
 	system("pause");
     return 0;
 }
@@ -532,3 +522,22 @@ void test_simplify_old()
 	SimplifyBracket(br);
 	//br.ShowElements();
 }
+
+void test_operationsPtr()
+{
+	LARGE_INTEGER StartPerformCount;
+	StartTimeMeasure(StartPerformCount);
+	for (unsigned i=0; i<500; i++)
+		test_Mult();
+		test_simplify_ptr();
+	double msTime = StopTimeMeasure(StartPerformCount);
+	cout << "Ellapsed time = " << msTime << endl;
+
+	StartTimeMeasure(StartPerformCount);
+	for (unsigned i=0; i<500; i++)
+		test_MultOld();
+		test_simplify_old();
+	msTime = StopTimeMeasure(StartPerformCount);
+	cout << "Ellapsed time old method = " << msTime << endl;
+}
+

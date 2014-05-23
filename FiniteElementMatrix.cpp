@@ -181,17 +181,22 @@ void FiniteElementMatrix::MatrixInit()
 	m_EulerMatrix = new double[m_MatrixSize*m_MatrixSize];
 
 	//--------------------------------------------------
-	Bracket euler_br, metr_br;   //в эти скобки будет записываться результат произведения собственная функция 
+	int N_reserve = 36*pow(m_P,2);
+	Bracket euler_br(1, N_reserve), metr_br(1, N_reserve);   //в эти скобки будет записываться результат произведения собственная функция 
 	// на тензор на собсвенную функцию 
+
+	Bracket br_sum(1, N_reserve), br_prod(1, N_reserve); //вспомогательные скобки
 
 	for (unsigned i=0;i<m_MatrixSize;i++)
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			GeneralVectorTensorVectorProduct(m_ArrAnalyt_EigFunc[i],m_ArrAnalyt_EigFunc[j],m_MatrixEps,euler_br);
+			GeneralVectorTensorVectorProduct(m_ArrAnalyt_EigFunc[i],m_ArrAnalyt_EigFunc[j],m_MatrixEps,
+				&euler_br, &br_sum, &br_prod);
 
 			*(m_EulerMatrix+m_MatrixSize*i+j)=Integrate(euler_br);
 
-			GeneralVectorTensorVectorProduct(m_ArrAnalyt_RotEigFunc[i],m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,metr_br);
+			GeneralVectorTensorVectorProduct(m_ArrAnalyt_RotEigFunc[i],m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
+				&metr_br, &br_sum, &br_prod);
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(metr_br);
 		}
