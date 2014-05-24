@@ -93,6 +93,20 @@ private:
 
 void Mult(Bracket* a, Bracket* b, Bracket* result); 
 void Plus(Bracket* a, Bracket* b, Bracket* result);
-
 void Mult(Bracket* br, double* numb, Bracket* result);
+
+typedef std::vector<Bracket> bp_t;
+typedef std::vector<bp_t> bpp_t;
+
+/*void f(bp_t *p)
+{
+	p->at(0);
+}
+
+void f1(bpp_t *p)
+{
+	bp_t pv = p->at(0);
+	pv.at(0);
+}*/
+
 #endif // BRACKET_H

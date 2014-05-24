@@ -92,9 +92,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 	double value;
 
-	m_QuadOrder=4;
-	string s_Roots="Roots4Nodes.txt";
-	string s_Weights="Weights4Nodes.txt";
+	m_QuadOrder=6;
+	string s_Roots="Roots6Nodes.txt";
+	string s_Weights="Weights6Nodes.txt";
 	Q3 = (int)pow(m_QuadOrder,3);
 	Q2 = (int)pow(m_QuadOrder,2);
 
@@ -181,7 +181,7 @@ void FiniteElementMatrix::MatrixInit()
 	m_EulerMatrix = new double[m_MatrixSize*m_MatrixSize];
 
 	//--------------------------------------------------
-	int N_reserve = 36*pow(m_P,2);
+	int N_reserve = 36*pow(m_P,2)*1000;
 	Bracket euler_br(1, N_reserve), metr_br(1, N_reserve);   //в эти скобки будет записываться результат произведения собственная функция 
 	// на тензор на собсвенную функцию 
 
@@ -190,15 +190,15 @@ void FiniteElementMatrix::MatrixInit()
 	for (unsigned i=0;i<m_MatrixSize;i++)
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			GeneralVectorTensorVectorProduct(m_ArrAnalyt_EigFunc[i],m_ArrAnalyt_EigFunc[j],m_MatrixEps,
+			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_EigFunc[i],&m_ArrAnalyt_EigFunc[j],m_MatrixEps,
 				&euler_br, &br_sum, &br_prod);
 
-			*(m_EulerMatrix+m_MatrixSize*i+j)=Integrate(euler_br);
+			*(m_EulerMatrix+m_MatrixSize*i+j)=Integrate(&euler_br);
 
-			GeneralVectorTensorVectorProduct(m_ArrAnalyt_RotEigFunc[i],m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
+			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_RotEigFunc[i],&m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
 				&metr_br, &br_sum, &br_prod);
 
-			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(metr_br);
+			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(&metr_br);
 		}
 	//-------------------------------------------------------------------------------------------
 
@@ -337,27 +337,29 @@ inline double FiniteElementMatrix::CalcFact(unsigned N)
 	return m_ArrayFact[N];
 }
 //--------------------------Интегрирование скобки-----------------------------------------------
-double FiniteElementMatrix::Integrate (Bracket& br)
+double FiniteElementMatrix::Integrate (Bracket* br)
 {
 	double I=0;
 	unsigned pow1, pow2, pow3, pow4;
-	std::vector<GainPower_t> terms;
-	terms=br.GetTerms();
+	std::vector<GainPower_t>* terms;
+	terms=br->GetTermsPtr();
+
+	unsigned N = terms->size();
 
 	double i1, i2, i3, i4, i_s;
-	for (unsigned i=0;i<terms.size();i++)
+	for (unsigned i=0;i<N;i++)
 	{
-		pow1=terms.at(i).p1;
-		pow2=terms.at(i).p2;
-		pow3=terms.at(i).p3;
-		pow4=terms.at(i).p4;
+		pow1=terms->at(i).p1;
+		pow2=terms->at(i).p2;
+		pow3=terms->at(i).p3;
+		pow4=terms->at(i).p4;
 		i1=CalcFact(pow1);
 		i2=CalcFact(pow2);
 		i3=CalcFact(pow3);
 		i4=CalcFact(pow4);
 		i_s=CalcFact(pow1+pow2+pow3+pow4+3);
 		//I=I+terms.at(i).g*i1*i2*i3*i4*6.0/i_s;
-		I=I+terms.at(i).g*i1*i2*i3*i4/i_s;
+		I=I+terms->at(i).g*i1*i2*i3*i4/i_s;
 	}
 	return I;
 }

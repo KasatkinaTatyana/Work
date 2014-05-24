@@ -10,7 +10,7 @@
 std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b);
 void VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b, std::vector<Bracket>& result);
 double ScalarProduct(std::vector<double> a, std::vector<double> b);
-void GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1, std::vector<Bracket>& vect2, 
+void GeneralVectorTensorVectorProduct(std::vector<Bracket>* vect1, std::vector<Bracket>* vect2, 
 										 //double** M, Bracket& result);
 										 double** M, Bracket* result, Bracket* br_sum, Bracket* br_prod);
 

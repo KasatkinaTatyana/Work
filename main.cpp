@@ -348,7 +348,7 @@ void test_Matrixes()
 	b.push_back(-3.0);
 
 	//double pr=NumericalVectorTensorVectorProduct(a,b,Eps);
-    FiniteElementMatrix f(2,simplex_peaks,Eps,Mu);
+    FiniteElementMatrix f(3,simplex_peaks,Eps,Mu);
 }
 
 /*void test_integrate()

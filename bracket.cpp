@@ -249,7 +249,7 @@ void Bracket::Plus(Bracket* added)
 	m_N = m_N + L;
 	std::vector<GainPower_t>* aTerms = added->GetTermsPtr();
 	copy(aTerms->begin(), aTerms->end(), inserter(m_Terms,m_Terms.end()));
-	SimplifyBracketPtr(this);
+	//SimplifyBracketPtr(this);
 }
 
 // В переменную result записывается значение a*b. Выражения вида (x, y, x) в таком варианте вычисляются некорректно
@@ -291,7 +291,7 @@ void Mult(Bracket* a, Bracket* b, Bracket* result)
 		}
 	}
 
-	SimplifyBracketPtr(result);
+	//SimplifyBracketPtr(result);
 }
 
 void Plus(Bracket* a, Bracket* b, Bracket* result)
@@ -324,7 +324,7 @@ void Plus(Bracket* a, Bracket* b, Bracket* result)
 		rTerms->at(i+L).p3=bTerms->at(i).p3;
 		rTerms->at(i+L).p4=bTerms->at(i).p4;
 	}
-	SimplifyBracketPtr(result);
+	//SimplifyBracketPtr(result);
 }
 
 void Mult(Bracket* br, double* numb, Bracket* result)

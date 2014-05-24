@@ -54,9 +54,9 @@ double ScalarProduct(std::vector<double> a, std::vector<double> b)
 }
 
 //--------------Произведение вектора, тензора и вектора в общем виде----------------------------------
-void GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
+void GeneralVectorTensorVectorProduct(std::vector<Bracket>* vect1,
 									  //std::vector<Bracket>& vect2, double** M, Bracket& result)
-									  std::vector<Bracket>& vect2, double** M, Bracket* result,
+									  std::vector<Bracket>* vect2, double** M, Bracket* result,
 									  Bracket* br_sum, Bracket* br_prod)
 {
     double m_Dim=3;
@@ -70,10 +70,10 @@ void GeneralVectorTensorVectorProduct(std::vector<Bracket>& vect1,
 
         for (unsigned k=0;k<m_Dim;k++)
         {
-			Mult(&vect1[k], &M[k][i], br_prod);
+			Mult(&(vect1->at(k)), &M[k][i], br_prod);
 			br_sum->Plus(br_prod);
         }
-        Mult(br_sum,&vect2[i],br_prod);
+        Mult(br_sum,&(vect2->at(i)),br_prod);
 
 		result->Plus(br_prod);
     }

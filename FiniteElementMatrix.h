@@ -34,7 +34,7 @@ public:
 							double ksi1, double ksi2, double ksi3, 
 							std::vector<double>& result);
 
-	double Integrate(Bracket& br);
+	double Integrate(Bracket* br);
 
 	void FormArrayAnalyt();
 	void FormArrayNum();
@@ -93,11 +93,13 @@ private:
 		//-------------------------------------------------------------------------------------------------------------
 		double** m_Arr_AllNodes;     //массив всех собственных функций и их роторов во всех узлах 
 		double** m_Arr_RotAllNodes;
-		
-		std::vector< std::vector<Bracket> > m_ArrAnalyt_EigFunc;
-		std::vector< std::vector<Bracket> > m_ArrAnalyt_RotEigFunc;
+
+		bpp_t m_ArrAnalyt_EigFunc;   //массив аналитических собственных функций и их роторов
+		bpp_t m_ArrAnalyt_RotEigFunc;
 
 		void display(unsigned rows, unsigned columns, double** arr);
 };
+
+
 
 #endif // FINITEELEMENTMATRIX_H
