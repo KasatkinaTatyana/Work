@@ -10,7 +10,8 @@
 
 #include <math.h>
 
-struct _GainPower {
+struct _GainPower 
+{
 	double g;             //коэффициент одночлена
     int p1;               //степень переменной ksi_1  
     int p2;               //степень переменной ksi_2  

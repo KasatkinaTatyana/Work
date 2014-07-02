@@ -234,15 +234,30 @@ void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 		n=3;
 		m=4;
 	}
+	if ((gamma==2)&&(beta==1))
+	{
+		n=4;
+		m=3;
+	}
 	if ((gamma==1)&&(beta==3))
 	{
 		n=2;
 		m=4;
 	}
+	if ((gamma==3)&&(beta==1))
+	{
+		n=4;
+		m=2;
+	}
 	if ((gamma==1)&&(beta==4))
 	{
 		n=2;
 		m=3;
+	}
+	if ((gamma==4)&&(beta==1))
+	{
+		n=3;
+		m=2;
 	}
 	if ((gamma==2)&&(beta==3))
 	{
@@ -254,10 +269,20 @@ void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 		n=1;
 		m=3;
 	}
+	if ((gamma==4)&&(beta==2))
+	{
+		n=3;
+		m=1;
+	}
 	if ((gamma==3)&&(beta==4))
 	{
 		n=1;
 		m=2;
+	}
+	if ((gamma==4)&&(beta==3))
+	{
+		n=2;
+		m=1;
 	}
 	vect.push_back(n);
 	vect.push_back(m);

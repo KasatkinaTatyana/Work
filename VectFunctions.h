@@ -22,4 +22,5 @@ double NumericalVectorTensorVectorProduct(std::vector<double>& vect1,
 
 double NumericalVectorTensorVectorProduct(double* arr1,
                                           double* arr2, double** M);
+
 #endif // VECTFUNCTIONS_H

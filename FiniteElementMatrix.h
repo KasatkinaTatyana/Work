@@ -36,8 +36,21 @@ public:
 
 	double Integrate(Bracket* br);
 
-	void FormArrayAnalyt();
-	void FormArrayNum();
+	void FormArrayAnalyt();     //Формируется массив аналитически заданных собственных функций
+
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+	void FiniteElementMatrix::FormArrayAnalyt_LinComb();
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+
+	void FormArrayNum();        //Фомируется массив числовых значений собственных функций во всех узлах
+
+	void ExportFuncValues(std::string s1, std::string s2, std::string s3);
+
+	void FormFaceFunc(Bracket* bracket,unsigned* index_array,
+					  unsigned* non_zero_array, std::vector<Bracket>* eig_func, unsigned ind);
+
+	void FormInsideFunc(Bracket* bracket,unsigned* node_array,
+					    std::vector<Bracket>* eig_func, unsigned ind);
 
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул
