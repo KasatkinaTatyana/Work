@@ -93,9 +93,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 	double value;
 
-	m_QuadOrder=6;
-	string s_Roots="Roots6Nodes.txt";
-	string s_Weights="Weights6Nodes.txt";
+	m_QuadOrder=3;
+	string s_Roots="Roots3Nodes.txt";
+	string s_Weights="Weights3Nodes.txt";
 	Q3 = (int)pow(m_QuadOrder,3);
 	Q2 = (int)pow(m_QuadOrder,2);
 
@@ -120,15 +120,17 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	tfile.close();
 	//--------------------------------------------------------------------------------
 
-	//FormArrayNum();
-	//NumMatrixInit();
-
 	//FormArrayAnalyt();
+	//FormArrayNum();
+
 	FormArrayAnalyt_LinComb();
+	FormArrayNum_LinComb();
+
 	MatrixInit();
+	NumMatrixInit();
 
 	ShowMatrixes();	
-	//CompareMatrixs();
+	CompareMatrixs();
 	//---------------------------------------------------------------------------------
 	//Визуализация получившихся векторных полей
 	string s1 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi1Data.txt";
@@ -141,7 +143,7 @@ FiniteElementMatrix::~FiniteElementMatrix()
 {
 	//delete[] m_MetrMatrix;
 	delete[] m_EulerMatrix;
-	//delete[] m_NumEulerMatrix;
+	delete[] m_NumEulerMatrix;
 	//delete[] m_NumMetrMatrix;
 
 	for (unsigned i=0; i < m_CountPeaks; i++)
@@ -150,12 +152,12 @@ FiniteElementMatrix::~FiniteElementMatrix()
 	for (unsigned i=0; i < m_Dim; i++)
 	{
 		delete[] m_MatrixEps[i];
-		//delete[] m_MatrixMu[i];
+		delete[] m_MatrixMu[i];
 	}
 
 	for (unsigned i=0; i < m_MatrixSize*Q3; i++)
 	{
-		//delete[] m_Arr_AllNodes[i];
+		delete[] m_Arr_AllNodes[i];
 		//delete[] m_Arr_RotAllNodes[i];
 	}
 }
@@ -208,7 +210,7 @@ void FiniteElementMatrix::MatrixInit()
 			// метрическая матрица
 			/*
 			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_RotEigFunc[i],&m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
-				&metr_br, &br_sum, &br_prod);
+			&metr_br, &br_sum, &br_prod);
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(&metr_br);
 			*/
@@ -569,12 +571,12 @@ void FiniteElementMatrix::ShowMatrixes()
 	std::cout << "============Analytical MetrMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
-		for (unsigned j=0;j<m_MatrixSize;j++)
-		{
-			std::cout<< " " << *(m_MetrMatrix+i*m_MatrixSize+j);
+	for (unsigned j=0;j<m_MatrixSize;j++)
+	{
+	std::cout<< " " << *(m_MetrMatrix+i*m_MatrixSize+j);
 
-		}
-		std::cout << std::endl;
+	}
+	std::cout << std::endl;
 	} */
 	system("pause");
 
@@ -634,7 +636,7 @@ void FiniteElementMatrix::NumMatrixInit()
 	//-------------------------------------------------------------------------------------------------
 	//Выделяю память под матрицу Эйлера и метрическую матрицу
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
-	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
+	// m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
 	//--------------------------------------------------
 
 	double I, R, elem; 
@@ -661,18 +663,18 @@ void FiniteElementMatrix::NumMatrixInit()
 
 						I+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
 
-						elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+						/*elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
 							m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
 							m_MatrixMu);
 
-						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
+						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;*/
 					}//j_w
 				}//j_v
 			}//j_u
 			I*=pow(0.5,3);
 			R*=pow(0.5,3);
 			*(m_NumEulerMatrix+m_MatrixSize*i+j)=I;
-			*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
+			//*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
 		}
 	}
 	//-------------------------------------------------------------------------------------------
@@ -718,7 +720,7 @@ void FiniteElementMatrix::CompareMatrixs()
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
 
-	max=0;
+	/*max=0;
 	std::cout << "============MetrMatrix(i,j) - NumMetrMatrix(i,j)==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
@@ -731,7 +733,7 @@ void FiniteElementMatrix::CompareMatrixs()
 		//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
-	std::cout << max << endl;
+	std::cout << max << endl;*/
 }
 
 //------------------------------Массив m_ArrAnalytEigFunc заполняется элементами------------------------
@@ -923,10 +925,10 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							}
 
 							FormFaceFunc(&cur_bracket, index_array,
-								         non_zero_arr, &eig_func, 1);
+								non_zero_arr, &eig_func, 1);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
 							FormFaceFunc(&cur_bracket, index_array,
-								         non_zero_arr, &eig_func, 2);
+								non_zero_arr, &eig_func, 2);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
 
 							vect_bracket.clear();
@@ -968,6 +970,58 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 	// и матрицы Эйлера, если базинсые функции формируются как линейные комбинации
 }
 
+// Формирование числового массива базисных функций через линейные комбинации
+// сначала базисная функция получается аналитически, затем в нее подставляеются
+// нужные значения переменных ksi_1, ksi_2, ksi_3, в результате чего получается
+// соответсвующая числовая базисная функция
+// !!! Эту функцию можно запускать только после того, как отработал метод FormArrayAnalyt_LinComb()
+void FiniteElementMatrix::FormArrayNum_LinComb()
+{
+	//Выделение памяти
+	m_Arr_AllNodes = new double*[m_MatrixSize*Q3];
+	m_Arr_RotAllNodes = new double*[m_MatrixSize*Q3];
+	for (unsigned i=0;i<m_MatrixSize*Q3;i++)
+	{
+		m_Arr_AllNodes[i] = new double[m_Dim];
+		m_Arr_RotAllNodes[i] = new double[m_Dim];
+	}
+	//----------------------------------------------------
+	double u, v, w;
+	double x, y, z;
+	//--------------------Числовые векторы, соответсвующие собственным функциям и их роторам--------------------
+	vector<double> num_EigFunc;
+
+	vector<double> num_RotEigFunc;
+	//---------------------------------------------------------------------------------------------------------
+
+	for (unsigned elems_count = 0; elems_count < m_MatrixSize; elems_count++)
+	{
+		for (unsigned j_u=0; j_u<m_QuadOrder;j_u++)
+		{
+			for (unsigned j_v=0; j_v<m_QuadOrder;j_v++)
+			{
+				for (unsigned j_w=0; j_w<m_QuadOrder;j_w++)
+				{
+					u=m_Roots[j_u];
+					v=m_Roots[j_v];
+					w=m_Roots[j_w];
+					x = u*v*w;
+					y = u*v*(1.0 - w);
+					z = u*(1.0 - v);
+
+					VectBracketValue(m_ArrAnalyt_EigFunc.at(elems_count), x, y, z, num_EigFunc);
+
+					for (unsigned d=0;d<m_Dim;d++)
+					{
+						m_Arr_AllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_EigFunc[d];
+						// m_Arr_RotAllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_RotEigFunc[d];
+					}//d
+				}//j_w
+			}//j_v
+		}//j_u
+	}// elems_count
+}
+
 void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 									   unsigned* non_zero_array, std::vector<Bracket>* eig_func, unsigned ind)
 {
@@ -981,7 +1035,7 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 		a = DefVector(index_array[0]);
 		b = DefVector(index_array[1]);
 		c = DefVector(index_array[2]);
-				
+
 		LocalTermsChange(trm, index_array[1], 1);
 		LocalTermsChange(trm, index_array[2], 1);
 		trm.g =  1.0/(non_zero_array[1]+0.0) + 1.0/(non_zero_array[2]+0.0);            
@@ -1063,8 +1117,8 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 }
 
 void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
-					                     std::vector<Bracket>* eig_func, unsigned ind)
-// node_array - массив [i, j, k, l]										 
+										 std::vector<Bracket>* eig_func, unsigned ind)
+										 // node_array - массив [i, j, k, l]										 
 {
 	GainPower_t trm = {1, 0, 0, 0, 0};
 	vector<GainPower_t> terms0, terms1, terms2;
@@ -1076,7 +1130,7 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3 = 1;
 		trm.p4 = 1;
 		trm.g =  1.0/(node_array[1]+0.0)/(node_array[3]+0.0) + 1.0/(node_array[2]+0.0)/(node_array[3]+0.0)
-			 + 1.0/(node_array[1]+0.0)/(node_array[2]+0.0);
+			+ 1.0/(node_array[1]+0.0)/(node_array[2]+0.0);
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1115,7 +1169,7 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p1 = 1;
 		trm.p2 = 0;
 		trm.g = 1.0/(node_array[0]+0.0)/(node_array[3]+0.0) + 1.0/(node_array[2]+0.0)/(node_array[3]+0.0)+
-			    1.0/(node_array[0]+0.0)/(node_array[2]+0.0);
+			1.0/(node_array[0]+0.0)/(node_array[2]+0.0);
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);

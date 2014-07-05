@@ -86,6 +86,9 @@ public:
 
 	void Plus(Bracket* added);
 
+	void test_ref(Bracket& br);
+
+
 private:
 	std::vector<GainPower_t> m_Terms;  //скобка представляет собой вектор одночленов (m_Terms)
 
@@ -95,6 +98,7 @@ private:
 void Mult(Bracket* a, Bracket* b, Bracket* result); 
 void Plus(Bracket* a, Bracket* b, Bracket* result);
 void Mult(Bracket* br, double* numb, Bracket* result);
+
 
 typedef std::vector<Bracket> bp_t;
 typedef std::vector<bp_t> bpp_t;

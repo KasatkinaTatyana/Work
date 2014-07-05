@@ -347,3 +347,9 @@ void Mult(Bracket* br, double* numb, Bracket* result)
 	}
 }
 
+void Bracket::test_ref(Bracket& br)
+{
+	double d_b = br.m_Terms.at(0).g;
+	unsigned N = br.BracketSize();
+}
+

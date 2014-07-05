@@ -39,7 +39,8 @@ public:
 	void FormArrayAnalyt();     //Формируется массив аналитически заданных собственных функций
 
 	//----------&----------&----------&----------&----------&----------&----------&----------&
-	void FiniteElementMatrix::FormArrayAnalyt_LinComb();
+	void FormArrayAnalyt_LinComb();
+	void FormArrayNum_LinComb();
 	//----------&----------&----------&----------&----------&----------&----------&----------&
 
 	void FormArrayNum();        //Фомируется массив числовых значений собственных функций во всех узлах
@@ -54,8 +55,8 @@ public:
 
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул
-		int Q2;
-		int Q3;
+		int Q2;                          // m_QuadOrder ^ 2
+		int Q3;                          // m_QuadOrder ^ 3 
 
         unsigned m_P;
 
