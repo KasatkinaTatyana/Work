@@ -93,9 +93,9 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 	double value;
 
-	m_QuadOrder=3;
-	string s_Roots="Roots3Nodes.txt";
-	string s_Weights="Weights3Nodes.txt";
+	m_QuadOrder=4;
+	string s_Roots="Roots4Nodes.txt";
+	string s_Weights="Weights4Nodes.txt";
 	Q3 = (int)pow(m_QuadOrder,3);
 	Q2 = (int)pow(m_QuadOrder,2);
 
@@ -129,7 +129,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	MatrixInit();
 	NumMatrixInit();
 
-	ShowMatrixes();	
+	//ShowMatrixes();	
 	CompareMatrixs();
 	//---------------------------------------------------------------------------------
 	//Визуализация получившихся векторных полей
@@ -141,10 +141,10 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 FiniteElementMatrix::~FiniteElementMatrix()
 {
-	//delete[] m_MetrMatrix;
+	delete[] m_MetrMatrix;
 	delete[] m_EulerMatrix;
 	delete[] m_NumEulerMatrix;
-	//delete[] m_NumMetrMatrix;
+	delete[] m_NumMetrMatrix;
 
 	for (unsigned i=0; i < m_CountPeaks; i++)
 		delete[] m_Peaks[i];
@@ -158,7 +158,7 @@ FiniteElementMatrix::~FiniteElementMatrix()
 	for (unsigned i=0; i < m_MatrixSize*Q3; i++)
 	{
 		delete[] m_Arr_AllNodes[i];
-		//delete[] m_Arr_RotAllNodes[i];
+		delete[] m_Arr_RotAllNodes[i];
 	}
 }
 
@@ -208,12 +208,11 @@ void FiniteElementMatrix::MatrixInit()
 
 
 			// метрическая матрица
-			/*
 			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_RotEigFunc[i],&m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
 			&metr_br, &br_sum, &br_prod);
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(&metr_br);
-			*/
+		
 		}
 		//-------------------------------------------------------------------------------------------
 
@@ -378,179 +377,45 @@ double FiniteElementMatrix::Integrate (Bracket* br)
 
 //----------Вычисление ротора от вектора, который задан в виде: скобка * (ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n))
 // n < m
+// это новый исправленный вариант - он использует метод CalcUnitRot
 std::vector<Bracket> FiniteElementMatrix::RotorCalc(Bracket& br, unsigned n, unsigned m)
 {
 	std::vector<Bracket> result;
-	//Скалярная функция * градиент вектора
+	Bracket zero_br(1);
+	result.assign(m_Dim,zero_br);
+	GainPower_t trm = {1, 0, 0, 0, 0};
 
-	std::vector<double> v_1=DefVector(m);
-	std::vector<double> v_2=DefVector(n);
-	std::vector<double> vect=VectProduct(v_2,v_1);
+	// Для вычисления ротора
+	Bracket rot_br(1);
+
+	vector<GainPower_t> temp_term;   // вектор для вычисления ротора
+
+	vector<Bracket> rot;    // ротор одночлена, который представляет собой полином, умноженный градиент одной
+	                        // из координат
+	rot.assign(3,rot_br);
+	//------------------------------------------------------------------------------------------------
+	LocalTermsChange(trm, n, 1);
+	//-------------------------Rot------------------------------------
+	temp_term.push_back(trm);
+	Bracket temp_br(temp_term);		
+	Mult(&br,&temp_br,&rot_br);
+	CalcUnitRot(&rot_br,m,&rot);
 	for (unsigned i=0;i<m_Dim;i++)
-	{
-		result.push_back(br*(vect[i]*2.0));
-	}
+		(result.at(i)).Plus(&(rot.at(i)));
+	//-----------------------------------------------------------------
+	//обнулили trm
+	LocalTermsChange(trm, n, 0);
 
-	//Градиент скалярной функции
-	Bracket local_br(1);
-
-	//Трехмерный вектор, состоящий из нулевых скобок
-	std::vector<Bracket> vect_nabla_phi;
+	LocalTermsChange(trm, m, 1);
+	trm.g = -1.0;
+	//-----------------------------Rot--------------------------------
+	//temp_term.assign(1,trm);
+	temp_term[0] = trm;
+	temp_br.SetTermsPtr(&temp_term);
+	Mult(&br,&temp_br,&rot_br);
+	CalcUnitRot(&rot_br,n,&rot);
 	for (unsigned i=0;i<m_Dim;i++)
-		vect_nabla_phi.push_back(local_br);
-
-	/*std::vector<Power_t> powers, current_powers;
-	std::vector<double> gains, current_gains;
-	Power_t pw;
-	double gn;*/
-	std::vector<GainPower_t> terms, current_terms;
-	GainPower_t trm;
-
-	/*current_powers=br.GetPowers();
-	current_gains=br.GetGains();*/
-	current_terms = br.GetTerms();
-
-	for (unsigned i=0;i<br.BracketSize();i++)
-	{
-		if ((current_terms[i]).p1>0)
-		{
-			//Добавление градиента ksi_1 с соответствующим коэффициентом,
-			//если текущий элемент скобки зависит от переменной ksi_1
-			for (unsigned j=0;j<m_Dim;j++)
-			{
-				trm.p1=(unsigned)(current_terms[i].p1-1);
-				trm.p2=current_terms[i].p2;
-				trm.p3=current_terms[i].p3;
-				trm.p4=current_terms[i].p4;
-
-				trm.g=m_GradKsi_1[j]*current_terms[i].g*((double)(current_terms[i]).p1);
-
-				terms.push_back(trm);
-
-				local_br.SetTerms(terms);
-
-				terms.clear();
-
-				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
-			}
-		}//ksi_1
-
-		//Аналогично градиенты ksi_2, ksi_3, ksi_4
-		if ((current_terms[i]).p2>0)
-		{
-			//Добавление градиента ksi_1 с соответствующим коэффициентом,
-			//если текущий элемент скобки зависит от переменной ksi_1
-			for (unsigned j=0;j<m_Dim;j++)
-			{
-				trm.p1=current_terms[i].p1;
-				trm.p2=(unsigned)(current_terms[i].p2-1);;
-				trm.p3=current_terms[i].p3;
-				trm.p4=current_terms[i].p4;
-
-				trm.g=m_GradKsi_2[j]*current_terms[i].g*((double)(current_terms[i]).p2);
-
-				terms.push_back(trm);
-
-				local_br.SetTerms(terms);
-
-				terms.clear();
-
-				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
-			}
-		}//ksi_2
-
-		if ((current_terms[i]).p3>0)
-		{
-			//Добавление градиента ksi_1 с соответствующим коэффициентом,
-			//если текущий элемент скобки зависит от переменной ksi_1
-			for (unsigned j=0;j<m_Dim;j++)
-			{
-				trm.p1=current_terms[i].p1;
-				trm.p2=current_terms[i].p2;
-				trm.p3=(unsigned)(current_terms[i].p3-1);;
-				trm.p4=current_terms[i].p4;
-
-				trm.g=m_GradKsi_3[j]*current_terms[i].g*((double)(current_terms[i]).p3);
-
-				terms.push_back(trm);
-
-				local_br.SetTerms(terms);
-
-				terms.clear();
-
-				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
-			}
-		}//ksi_3
-
-		if ((current_terms[i]).p4>0)
-		{
-			//Добавление градиента ksi_1 с соответствующим коэффициентом,
-			//если текущий элемент скобки зависит от переменной ksi_1
-			for (unsigned j=0;j<m_Dim;j++)
-			{
-				trm.p1=current_terms[i].p1;
-				trm.p2=current_terms[i].p2;
-				trm.p3=current_terms[i].p3;
-				trm.p4=(unsigned)(current_terms[i].p4-1);
-
-				trm.g=m_GradKsi_4[j]*current_terms[i].g*((double)(current_terms[i]).p4);
-
-				terms.push_back(trm);
-
-				local_br.SetTerms(terms);
-
-				terms.clear();
-
-				vect_nabla_phi[j]=vect_nabla_phi[j]+local_br;
-			}
-		}//ksi_4
-	}//vect_nabla_phi готов
-
-	trm.p1=0;
-	trm.p2=0;
-	trm.p3=0;
-	trm.p4=0;
-	trm.g=1.0;
-
-	terms.push_back(trm);
-
-	local_br.SetTerms(terms);
-
-	//(ksi_n*nabla(ksi_m) - ksi_m*nabla(ksi_n)) = vect_ksi_nm
-	std::vector<Bracket> vect_ksi_nm;
-
-	LocalTermsChange(trm,n,1);
-	terms.push_back(trm);
-	local_br.SetTerms(terms);
-
-	for (unsigned i=0;i<m_Dim;i++)
-		vect_ksi_nm.push_back(local_br*v_1[i]);
-
-	LocalTermsChange(trm,n,0);
-	LocalTermsChange(trm,m,1);
-
-	terms.clear();
-	terms.push_back(trm);
-	local_br.SetTerms(terms);
-
-	Bracket br_1=local_br*v_2[0];
-	vect_ksi_nm[0]=vect_ksi_nm[0]-br_1;
-	br_1=local_br*v_2[1];
-	vect_ksi_nm[1]=vect_ksi_nm[1]-br_1;
-	br_1=local_br*v_2[2];
-	vect_ksi_nm[2]=vect_ksi_nm[2]-br_1;//vect_ksi_nm
-
-	std::vector<Bracket> res_1;
-	VectBracketProduct(vect_nabla_phi,vect_ksi_nm,res_1);
-
-	for (unsigned i=0;i<m_Dim;i++)
-		result[i]=result[i]+res_1[i];
-
-	/*for (unsigned i=0;i<m_Dim;i++)
-	{
-	((Bracket)(result[i])).ShowElements();
-	}*/
-
+		(result.at(i)).Plus(&(rot.at(i)));
 	return result;
 }
 
@@ -567,7 +432,7 @@ void FiniteElementMatrix::ShowMatrixes()
 		std::cout << std::endl;
 	}
 
-	/*
+	
 	std::cout << "============Analytical MetrMatrix==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
@@ -577,7 +442,7 @@ void FiniteElementMatrix::ShowMatrixes()
 
 	}
 	std::cout << std::endl;
-	} */
+	} 
 	system("pause");
 
 }
@@ -636,7 +501,7 @@ void FiniteElementMatrix::NumMatrixInit()
 	//-------------------------------------------------------------------------------------------------
 	//Выделяю память под матрицу Эйлера и метрическую матрицу
 	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
-	// m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
+	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
 	//--------------------------------------------------
 
 	double I, R, elem; 
@@ -663,18 +528,18 @@ void FiniteElementMatrix::NumMatrixInit()
 
 						I+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
 
-						/*elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-							m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-							m_MatrixMu);
+						elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+						m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+						m_MatrixMu);
 
-						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;*/
+						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
 					}//j_w
 				}//j_v
 			}//j_u
 			I*=pow(0.5,3);
 			R*=pow(0.5,3);
 			*(m_NumEulerMatrix+m_MatrixSize*i+j)=I;
-			//*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
+			*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
 		}
 	}
 	//-------------------------------------------------------------------------------------------
@@ -720,20 +585,20 @@ void FiniteElementMatrix::CompareMatrixs()
 	std::cout << "============Max value of difference==============" << std::endl;
 	std::cout << max << endl;
 
-	/*max=0;
+	max=0;
 	std::cout << "============MetrMatrix(i,j) - NumMetrMatrix(i,j)==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
-		for (unsigned j=0;j<m_MatrixSize;j++)
-		{
-			//std::cout<< "  " << *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
-			if (max < abs( (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)) ) )
-				max = abs(*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j));
-		}
-		//std::cout << std::endl;
+	for (unsigned j=0;j<m_MatrixSize;j++)
+	{
+	//std::cout<< "  " << *(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j);
+	if (max < abs( (*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j)) ) )
+	max = abs(*(m_MetrMatrix+i*m_MatrixSize+j) - *(m_NumMetrMatrix+i*m_MatrixSize+j));
+	}
+	//std::cout << std::endl;
 	}
 	std::cout << "============Max value of difference==============" << std::endl;
-	std::cout << max << endl;*/
+	std::cout << max << endl;
 }
 
 //------------------------------Массив m_ArrAnalytEigFunc заполняется элементами------------------------
@@ -824,6 +689,10 @@ void FiniteElementMatrix::FormArrayAnalyt()
 //линейно-зависимые базисные функции исключаются
 void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-----------------------------------------------------------------------------------------------
 	unsigned low = 0;
 	unsigned high = m_P + 1;
 
@@ -838,14 +707,13 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 	int N_reserve = 36*pow(m_P,2)*1000;
 
 	Bracket cur_bracket;
-	Bracket sum1_bracket(1,N_reserve), sum2_bracket(1,N_reserve); 
 
 	std::vector<Bracket> vect_bracket;
-	std::vector<Bracket> eig_func_1, eig_func_2, eig_func_3;
-	vector<Bracket> eig_func;
+	vector<Bracket> eig_func, rot_eig_func;
 
-	unsigned n1, m1;
-	vector<unsigned> nm1;
+	Bracket zero_br(1);
+	eig_func.assign(m_Dim,zero_br);
+	rot_eig_func.assign(m_Dim, zero_br);
 
 	for (unsigned i = low;i <= high;i++)
 	{
@@ -862,7 +730,7 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 						WhereIsNode(i, j, k, l, flag);
 						if (flag==1)
 						{
-							EdgeIndDefine(i, j, k, l, gamma, beta);
+							EdgeIndDefine(i, j, k, l, gamma, beta, index_array);
 							//стандартная процедура формирования собственной функции
 							//В список добавляются 4 многочлена Сильвестра
 							//В список будут добавляться 4 многочлена Сильвестра
@@ -870,10 +738,6 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							AddSilvester(gamma, beta, 2, j, vect_bracket);
 							AddSilvester(gamma, beta, 3, k, vect_bracket);
 							AddSilvester(gamma, beta, 4, l, vect_bracket);
-
-							Def_nm(gamma,beta,nm1);
-							n1=nm1[0];
-							m1=nm1[1];
 
 							//Формирую скобку cur_bracket, а именно перемножаю
 							//скобки массива vect_bracket
@@ -885,9 +749,10 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 								cur_bracket=cur_bracket*vect_bracket[counter];
 							}
 
-							eig_func=FormVectEigFunc(cur_bracket,n1,m1);
+							FormEdjeFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							nm1.clear();
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
 							vect_bracket.clear();
 						}//ребро
 						//////////////////////////////////////////////////////////////////////////////////
@@ -925,11 +790,14 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							}
 
 							FormFaceFunc(&cur_bracket, index_array,
-								non_zero_arr, &eig_func, 1);
+								non_zero_arr, &eig_func, &rot_eig_func, 1);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
 							FormFaceFunc(&cur_bracket, index_array,
-								non_zero_arr, &eig_func, 2);
+								non_zero_arr, &eig_func, &rot_eig_func, 2);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
 
 							vect_bracket.clear();
 						}//грань
@@ -954,12 +822,17 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							index_array[2] = k;
 							index_array[3] = l;
 
-							FormInsideFunc(&cur_bracket, index_array, &eig_func,1);
+							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 1);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							FormInsideFunc(&cur_bracket, index_array, &eig_func,2);
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 2);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							FormInsideFunc(&cur_bracket, index_array, &eig_func,3);
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 3);
 							m_ArrAnalyt_EigFunc.push_back(eig_func);
+							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
 						}//внутренняя область
 					}//условие
 				}//l
@@ -968,6 +841,11 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 	}//i
 	m_MatrixSize = (unsigned) (6*(m_P+1) + m_P*(m_P+1) + m_P*(m_P*m_P-1)/2);   //размерности метрической матрицы
 	// и матрицы Эйлера, если базинсые функции формируются как линейные комбинации
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "FormArrayAnalyt_LinComb: ellapsed time = " << msTime << endl;
 }
 
 // Формирование числового массива базисных функций через линейные комбинации
@@ -977,6 +855,10 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 // !!! Эту функцию можно запускать только после того, как отработал метод FormArrayAnalyt_LinComb()
 void FiniteElementMatrix::FormArrayNum_LinComb()
 {
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//---------------------------------------------------------------------------------------------
 	//Выделение памяти
 	m_Arr_AllNodes = new double*[m_MatrixSize*Q3];
 	m_Arr_RotAllNodes = new double*[m_MatrixSize*Q3];
@@ -1010,26 +892,126 @@ void FiniteElementMatrix::FormArrayNum_LinComb()
 					z = u*(1.0 - v);
 
 					VectBracketValue(m_ArrAnalyt_EigFunc.at(elems_count), x, y, z, num_EigFunc);
+					VectBracketValue(m_ArrAnalyt_RotEigFunc.at(elems_count), x, y, z, num_RotEigFunc);
 
 					for (unsigned d=0;d<m_Dim;d++)
 					{
 						m_Arr_AllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_EigFunc[d];
-						// m_Arr_RotAllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_RotEigFunc[d];
+						m_Arr_RotAllNodes[elems_count*Q3+j_u*Q2+j_v*m_QuadOrder+j_w][d]=num_RotEigFunc[d];
 					}//d
 				}//j_w
 			}//j_v
 		}//j_u
 	}// elems_count
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "FormArrayNum_LinComb: ellapsed time = " << msTime << endl;
 }
 
-void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
-									   unsigned* non_zero_array, std::vector<Bracket>* eig_func, unsigned ind)
+void FiniteElementMatrix::FormEdjeFunc(Bracket* bracket,unsigned* index_array, std::vector<Bracket>* eig_func,
+									   std::vector<Bracket>* rot_eigfunc)
 {
 	GainPower_t trm = {1, 0, 0, 0, 0};
 	vector<GainPower_t> terms0, terms1, terms2;
+
 	vector<double> a;
 	vector<double> b;
 	vector<double> c;
+
+	// Для вычисления ротора
+	unsigned sz = 1;
+	rot_eigfunc->at(0).SetSizePtr(&sz);
+	rot_eigfunc->at(1).SetSizePtr(&sz);
+	rot_eigfunc->at(2).SetSizePtr(&sz);
+
+	Bracket rot_br(1);
+
+	vector<GainPower_t> temp_term;   // вектор для вычисления ротора
+
+	vector<Bracket> rot;    // ротор одночлена, который представляет собой полином, умноженный градиент одной
+	                        // из координат
+	rot.assign(3,rot_br);
+	//------------------------------------------------------------------------------------------------
+	a = DefVector(index_array[1]);
+	b = DefVector(index_array[0]);
+
+	LocalTermsChange(trm, index_array[0], 1);
+	//-------------------------Rot------------------------------------
+	temp_term.push_back(trm);
+	Bracket temp_br(temp_term);		
+	Mult(bracket,&temp_br,&rot_br);
+	CalcUnitRot(&rot_br,index_array[1],&rot);
+	for (unsigned i=0;i<m_Dim;i++)
+		rot_eigfunc->at(i).Plus(&(rot.at(i)));
+	//-----------------------------------------------------------------
+	terms0.push_back(trm);
+	terms1.push_back(trm);
+	terms2.push_back(trm);
+	//обнулили trm
+	LocalTermsChange(trm, index_array[0], 0);
+
+
+	LocalTermsChange(trm, index_array[1], 1);
+	trm.g = -1.0;
+	//-----------------------------Rot--------------------------------
+	//temp_term.assign(1,trm);
+	temp_term[0] = trm;
+	temp_br.SetTermsPtr(&temp_term);
+	Mult(bracket,&temp_br,&rot_br);
+	CalcUnitRot(&rot_br,index_array[0],&rot);
+	for (unsigned i=0;i<m_Dim;i++)
+		rot_eigfunc->at(i).Plus(&(rot.at(i)));
+	//---------------------------------------------------------------
+	terms0.push_back(trm);
+	terms1.push_back(trm);
+	terms2.push_back(trm);
+
+	terms0.at(0).g = terms0.at(0).g*a.at(0);
+	terms0.at(1).g = terms0.at(1).g*b.at(0);
+	Bracket br0(terms0);
+
+	terms1.at(0).g = terms1.at(0).g*a.at(1);
+	terms1.at(1).g = terms1.at(1).g*b.at(1);
+	Bracket br1(terms1);
+
+	terms2.at(0).g = terms2.at(0).g*a.at(2);
+	terms2.at(1).g = terms2.at(1).g*b.at(2);
+	Bracket br2(terms2);
+
+	Mult(bracket,&br0,&eig_func->at(0));
+	Mult(bracket,&br1,&eig_func->at(1));
+	Mult(bracket,&br2,&eig_func->at(2));
+}
+
+// Внутри функции вычисляется базисная функция eig_func и ее ротор rot_eigfunc.
+// все вычисления в этом методе для узла, принадлежащих грани тетраэдра
+void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
+									   unsigned* non_zero_array, vector<Bracket>* eig_func,
+									   vector<Bracket>* rot_eigfunc, unsigned ind)
+{
+	GainPower_t trm = {1, 0, 0, 0, 0};
+	vector<GainPower_t> terms0, terms1, terms2;
+
+	vector<double> a;
+	vector<double> b;
+	vector<double> c;
+
+	// Для вычисления ротора
+	unsigned sz = 1;
+	rot_eigfunc->at(0).SetSizePtr(&sz);
+	rot_eigfunc->at(1).SetSizePtr(&sz);
+	rot_eigfunc->at(2).SetSizePtr(&sz);
+
+	Bracket rot_br(1);
+
+	vector<GainPower_t> temp_term;   // вектор для вычисления ротора
+
+	vector<Bracket> rot;    // ротор одночлена, который представляет собой полином, умноженный градиент одной
+	                        // из координат
+	rot.assign(3,rot_br);
+	//---------------------------------------
 	if (ind==1)
 	{
 		a = DefVector(index_array[0]);
@@ -1038,7 +1020,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 
 		LocalTermsChange(trm, index_array[1], 1);
 		LocalTermsChange(trm, index_array[2], 1);
-		trm.g =  1.0/(non_zero_array[1]+0.0) + 1.0/(non_zero_array[2]+0.0);            
+		trm.g =  1.0/(non_zero_array[1]+0.0) + 1.0/(non_zero_array[2]+0.0);
+		//-------------------------Rot------------------------------------
+		temp_term.push_back(trm);
+		Bracket temp_br(temp_term);		
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[0],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//-----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1049,6 +1039,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 		LocalTermsChange(trm, index_array[0], 1);
 		LocalTermsChange(trm, index_array[2], 1);
 		trm.g =  -1.0/(non_zero_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[1],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//-----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1059,6 +1058,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 		LocalTermsChange(trm, index_array[0], 1);
 		LocalTermsChange(trm, index_array[1], 1);
 		trm.g =  -1.0/(non_zero_array[1]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[2],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1071,7 +1079,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 
 		LocalTermsChange(trm, index_array[0], 1);
 		LocalTermsChange(trm, index_array[2], 1);
-		trm.g =  1.0/(non_zero_array[0]+0.0) + 1.0/(non_zero_array[2]+0.0);            
+		trm.g =  1.0/(non_zero_array[0]+0.0) + 1.0/(non_zero_array[2]+0.0);
+		//-------------------------Rot------------------------------------
+		temp_term.push_back(trm);
+		Bracket temp_br(temp_term);		
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[1],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//-----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1082,6 +1098,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 		LocalTermsChange(trm, index_array[1], 1);
 		LocalTermsChange(trm, index_array[2], 1);
 		trm.g =  -1.0/(non_zero_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[0],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//-----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1092,6 +1117,15 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 		LocalTermsChange(trm, index_array[0], 1);
 		LocalTermsChange(trm, index_array[1], 1);
 		trm.g =  -1.0/(non_zero_array[0]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,index_array[2],&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//-----------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1117,13 +1151,30 @@ void FiniteElementMatrix::FormFaceFunc(Bracket* bracket,unsigned* index_array,
 }
 
 void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
-										 std::vector<Bracket>* eig_func, unsigned ind)
+										 std::vector<Bracket>* eig_func, 
+										 vector<Bracket>* rot_eigfunc, unsigned ind)
 										 // node_array - массив [i, j, k, l]										 
 {
 	GainPower_t trm = {1, 0, 0, 0, 0};
 	vector<GainPower_t> terms0, terms1, terms2;
 	// сначала идет коэффициент перед градиентом ksi_1, потом перед ksi_2, потом перед ksi_3
 	// затем перед ksi_4. 
+
+	// Для вычисления ротора
+	unsigned sz = 1;
+	rot_eigfunc->at(0).SetSizePtr(&sz);
+	rot_eigfunc->at(1).SetSizePtr(&sz);
+	rot_eigfunc->at(2).SetSizePtr(&sz);
+
+	Bracket rot_br(1);
+
+	vector<GainPower_t> temp_term;   // вектор для вычисления ротора
+
+	vector<Bracket> rot;    // ротор одночлена, который представляет собой полином, умноженный градиент одной
+	                        // из координат
+	rot.assign(3,rot_br);
+
+	// ----------------------------------
 	if (ind==1)
 	{
 		trm.p2 = 1;
@@ -1131,6 +1182,14 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p4 = 1;
 		trm.g =  1.0/(node_array[1]+0.0)/(node_array[3]+0.0) + 1.0/(node_array[2]+0.0)/(node_array[3]+0.0)
 			+ 1.0/(node_array[1]+0.0)/(node_array[2]+0.0);
+		//-------------------------Rot------------------------------------
+		temp_term.push_back(trm);
+		Bracket temp_br(temp_term);		
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,1,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1138,6 +1197,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p1 = 1;
 		trm.p2 = 0;
 		trm.g = - 1.0/(node_array[2]+0.0)/(node_array[3]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,2,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1145,6 +1213,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3 = 0;
 		trm.p2 = 1;
 		trm.g = - 1.0/(node_array[1]+0.0)/(node_array[3]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,3,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1152,6 +1229,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3=1;
 		trm.p4=0;
 		trm.g= - 1.0/(node_array[1]+0.0)/(node_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,4,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1162,6 +1248,14 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3 = 1;
 		trm.p4 = 1;
 		trm.g =  -1.0/(node_array[2]+0.0)/(node_array[3]+0.0);
+		//-------------------------Rot------------------------------------
+		temp_term.push_back(trm);
+		Bracket temp_br(temp_term);		
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,1,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1170,6 +1264,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p2 = 0;
 		trm.g = 1.0/(node_array[0]+0.0)/(node_array[3]+0.0) + 1.0/(node_array[2]+0.0)/(node_array[3]+0.0)+
 			1.0/(node_array[0]+0.0)/(node_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,2,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1177,6 +1280,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3 = 0;
 		trm.p2 = 1;
 		trm.g = - 1.0/(node_array[0]+0.0)/(node_array[3]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,3,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1184,6 +1296,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3=1;
 		trm.p4=0;
 		trm.g= - 1.0/(node_array[0]+0.0)/(node_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,4,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1194,6 +1315,14 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3 = 1;
 		trm.p4 = 1;
 		trm.g =  -1.0/(node_array[1]+0.0)/(node_array[3]+0.0);
+		//-------------------------Rot------------------------------------
+		temp_term.push_back(trm);
+		Bracket temp_br(temp_term);		
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,1,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//---------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1201,6 +1330,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p1 = 1;
 		trm.p2 = 0;
 		trm.g = - 1.0/(node_array[0]+0.0)/(node_array[3]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,2,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1209,6 +1347,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p2 = 1;
 		trm.g = 1.0/(node_array[1]+0.0)/(node_array[3]+0.0) + 1.0/(node_array[0]+0.0)/(node_array[3]+0.0) +
 			1.0/(node_array[0]+0.0)/(node_array[2]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,3,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1216,6 +1363,15 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 		trm.p3=1;
 		trm.p4=0;
 		trm.g= - 1.0/(node_array[0]+0.0)/(node_array[1]+0.0);
+		//-----------------------------Rot--------------------------------
+		//temp_term.assign(1,trm);
+		temp_term[0] = trm;
+		temp_br.SetTermsPtr(&temp_term);
+		Mult(bracket,&temp_br,&rot_br);
+		CalcUnitRot(&rot_br,4,&rot);
+		for (unsigned i=0;i<m_Dim;i++)
+			rot_eigfunc->at(i).Plus(&(rot.at(i)));
+		//--------------------------------------------------------------
 		terms0.push_back(trm);
 		terms1.push_back(trm);
 		terms2.push_back(trm);
@@ -1244,6 +1400,96 @@ void FiniteElementMatrix::FormInsideFunc(Bracket* bracket,unsigned* node_array,
 	Mult(bracket,&br2,&eig_func->at(2));
 }
 
+// Вычисляется ротор конструкции вида bracket*m_GradKsi с индексом numb. Текст повторяет фрагмент
+// метода RotorCalc. Метод RotorCalc является не слишком удачным, так как не обладает обобщаемостью.
+// В то время как метод CalcUnitRot может быть использован как универсальный для вычисления роторов аддитивных
+// слагаемых вида Bracket * std::vector<double>. Для того чтобы модифицировать этот фрагмент для
+// вычисления слагаемых вида Bracket * std::vector<Bracket> должны быть внесены изменения, но они незначительны.
+void FiniteElementMatrix::CalcUnitRot(Bracket* bracket, unsigned numb, vector<Bracket>* rot)
+{
+	vector<double> grad = DefVector(numb);
+
+	vector<double> grad_1, grad_2, grad_3, grad_4;
+
+	VectProduct(&m_GradKsi_1, &grad, &grad_1);
+	VectProduct(&m_GradKsi_2, &grad, &grad_2);
+	VectProduct(&m_GradKsi_3, &grad, &grad_3);
+	VectProduct(&m_GradKsi_4, &grad, &grad_4);
+
+	vector<GainPower_t>* current_terms = bracket->GetTermsPtr();
+	unsigned N = bracket->BracketSize();
+	GainPower_t trm;
+
+	vector<GainPower_t> terms;
+
+	for (unsigned j=0;j<m_Dim;j++)
+	{
+		for (unsigned i=0;i<N;i++)
+		{
+			if (current_terms->at(i).p1>0)
+			{
+				//Добавление градиента ksi_1 с соответствующим коэффициентом,
+				//если текущий элемент скобки зависит от переменной ksi_1
+				trm.p1=(unsigned)(current_terms->at(i).p1-1);
+				trm.p2=current_terms->at(i).p2;
+				trm.p3=current_terms->at(i).p3;
+				trm.p4=current_terms->at(i).p4;
+
+				trm.g=grad_1[j]*current_terms->at(i).g*((double)(current_terms->at(i)).p1);
+
+				terms.push_back(trm);
+			}//ksi_1
+
+			//Аналогично градиенты ksi_2, ksi_3, ksi_4
+			if (current_terms->at(i).p2>0)
+			{
+				//Добавление градиента ksi_1 с соответствующим коэффициентом,
+				//если текущий элемент скобки зависит от переменной ksi_1
+				trm.p1=current_terms->at(i).p1;
+				trm.p2=(unsigned)(current_terms->at(i).p2-1);;
+				trm.p3=current_terms->at(i).p3;
+				trm.p4=current_terms->at(i).p4;
+
+				trm.g=grad_2[j]*current_terms->at(i).g*((double)current_terms->at(i).p2);
+
+				terms.push_back(trm);
+			}//ksi_2
+
+			if (current_terms->at(i).p3>0)
+			{
+				//Добавление градиента ksi_1 с соответствующим коэффициентом,
+				//если текущий элемент скобки зависит от переменной ksi_1
+				trm.p1=current_terms->at(i).p1;
+				trm.p2=current_terms->at(i).p2;
+				trm.p3=(unsigned)(current_terms->at(i).p3-1);;
+				trm.p4=current_terms->at(i).p4;
+
+				trm.g=grad_3[j]*current_terms->at(i).g*((double)current_terms->at(i).p3);
+
+				terms.push_back(trm);
+
+			}//ksi_3
+
+			if (current_terms->at(i).p4>0)
+			{
+				//Добавление градиента ksi_1 с соответствующим коэффициентом,
+				//если текущий элемент скобки зависит от переменной ksi_1
+				trm.p1=current_terms->at(i).p1;
+				trm.p2=current_terms->at(i).p2;
+				trm.p3=current_terms->at(i).p3;
+				trm.p4=(unsigned)(current_terms->at(i).p4-1);
+
+				trm.g=grad_4[j]*current_terms->at(i).g*((double)current_terms->at(i).p4);
+
+				terms.push_back(trm);
+
+			}//ksi_4
+		}// i - цикл по всем одночленам скобки bracket
+		rot->at(j).SetTermsPtr(&terms);
+		SimplifyBracketPtr(&rot->at(j));
+		terms.clear();
+	}// j - цикл по координатам ротора
+}
 
 
 //----------------Массив m_Arr_AllNodes заполняется элементами---------------------------

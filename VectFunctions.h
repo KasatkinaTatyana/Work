@@ -8,6 +8,9 @@
 #include <ctime>
 
 std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b);
+// другая версия
+void VectProduct(std::vector<double>* a, std::vector<double>* b, std::vector<double>* result);
+
 void VectBracketProduct(std::vector<Bracket>& a, std::vector<Bracket>& b, std::vector<Bracket>& result);
 double ScalarProduct(std::vector<double> a, std::vector<double> b);
 void GeneralVectorTensorVectorProduct(std::vector<Bracket>* vect1, std::vector<Bracket>* vect2, 

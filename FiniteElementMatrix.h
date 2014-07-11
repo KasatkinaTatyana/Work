@@ -16,19 +16,23 @@ public:
 
     FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu);
     virtual ~FiniteElementMatrix();
-    void MatrixInit();
+
+	void FormArrayAnalyt();     //Формируется массив аналитически заданных собственных функций
+
+	void FormArrayNum();        //Фомируется массив числовых значений собственных функций во всех узлах
+
+    void MatrixInit();        //Формирование метрической матрицы и матрицы Эйлера с аналитических формул
 
 	void NumMatrixInit();    //Формирование метрической матрицы и матрицы Эйлера с использованием численного интегрирования
 
+	// Внутренние методы
     void AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket);
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
-    std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
-
-    void ShowMatrixes();
-
     std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
+
+	std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
 
 	void NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
 							double ksi1, double ksi2, double ksi3, 
@@ -36,22 +40,28 @@ public:
 
 	double Integrate(Bracket* br);
 
-	void FormArrayAnalyt();     //Формируется массив аналитически заданных собственных функций
-
-	//----------&----------&----------&----------&----------&----------&----------&----------&
-	void FormArrayAnalyt_LinComb();
-	void FormArrayNum_LinComb();
-	//----------&----------&----------&----------&----------&----------&----------&----------&
-
-	void FormArrayNum();        //Фомируется массив числовых значений собственных функций во всех узлах
+	// Отображение результатов
+	void ShowMatrixes();
 
 	void ExportFuncValues(std::string s1, std::string s2, std::string s3);
 
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+	// Блок функций, которые нужны, чтобы вычислять базис с использованием линейных комбинаций
+	void FormArrayAnalyt_LinComb();
+	void FormArrayNum_LinComb();
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+	void FormEdjeFunc(Bracket* bracket,unsigned* index_array,
+					  std::vector<Bracket>* eig_func,
+					  std::vector<Bracket>* rot_eigfunc);
+
 	void FormFaceFunc(Bracket* bracket,unsigned* index_array,
-					  unsigned* non_zero_array, std::vector<Bracket>* eig_func, unsigned ind);
+					  unsigned* non_zero_array, std::vector<Bracket>* eig_func,
+					  std::vector<Bracket>* rot_eigfunc, unsigned ind);
 
 	void FormInsideFunc(Bracket* bracket,unsigned* node_array,
-					    std::vector<Bracket>* eig_func, unsigned ind);
+					    std::vector<Bracket>* eig_func, std::vector<Bracket>* rot_eigfunc, unsigned ind);
+
+	void CalcUnitRot(Bracket* bracket, unsigned numb, std::vector<Bracket>* rot);
 
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул

@@ -86,7 +86,7 @@ public:
 
 	void Plus(Bracket* added);
 
-	void test_ref(Bracket& br);
+	void test_ref(std::vector<Bracket>& vect_br);
 
 
 private:

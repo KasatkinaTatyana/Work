@@ -20,37 +20,51 @@ void WhereIsNode(unsigned i, unsigned j, unsigned k, unsigned l,unsigned& flag)
 }
 
 //----------------------по двум нулевым индексам определяется значение gamma, beta-------------------
-void EdgeIndDefine(unsigned i, unsigned j, unsigned k, unsigned l, unsigned& gamma, unsigned& beta)
+// и массив index_array - номера барицентрических координат, которые не равны 0 для этого узла
+void EdgeIndDefine(unsigned i, unsigned j, unsigned k, unsigned l, unsigned& gamma, unsigned& beta,
+				   unsigned* index_array)
 {
 	if ((i==0)&&(j==0))
 	{
 		gamma = 1;
 		beta = 2;
+		index_array[0]=3;
+		index_array[1]=4;
 	}
 	if ((i==0)&&(k==0))
 	{
 		gamma = 1;
 		beta = 3;
+		index_array[0]=2;
+		index_array[1]=4;
 	}
 	if ((i==0)&&(l==0))
 	{
 		gamma = 1;
 		beta = 4;
+		index_array[0]=2;
+		index_array[1]=3;
 	}
 	if ((j==0)&&(k==0))
 	{
 		gamma = 2;
 		beta = 3;
+		index_array[0]=1;
+		index_array[1]=4;
 	}
 	if ((j==0)&&(l==0))
 	{
 		gamma = 2;
 		beta = 4;
+		index_array[0]=1;
+		index_array[1]=3;
 	}
 	if ((k==0)&&(l==0))
 	{
 		gamma = 3;
 		beta = 4;
+		index_array[0]=1;
+		index_array[1]=2;
 	}
 }
 

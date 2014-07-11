@@ -16,6 +16,13 @@ std::vector<double> VectProduct(std::vector<double> a, std::vector<double> b)
     return result;
 }
 //--------------------------------------------------------------------------------------------------------
+void VectProduct(std::vector<double>* a, std::vector<double>* b, std::vector<double>* result)
+{
+	result->assign(3, 0.0);
+	result->at(0) = a->at(1)*b->at(2)-a->at(2)*b->at(1);
+	result->at(1) = a->at(2)*b->at(0)-a->at(0)*b->at(2);
+    result->at(2) = a->at(0)*b->at(1)-a->at(1)*b->at(0);
+}
 //---------------Векторное произведение двух векторов, элементами кот. являются скобки--------------------
 void VectBracketProduct(vector<Bracket>& a, vector<Bracket>& b, vector<Bracket>& result)
 {

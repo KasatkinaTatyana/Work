@@ -114,8 +114,9 @@ void test_Matrixs()
 	b.push_back(-2.0);
 	b.push_back(-3.0);
 
+
 	//double pr=NumericalVectorTensorVectorProduct(a,b,Eps);
-    FiniteElementMatrix f(0,simplex_peaks,Eps,Mu);
+    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
 }
 
 
@@ -253,7 +254,7 @@ void test_FormFaceFunc()
 	vect_br.push_back(unit_br);
 	vect_br.push_back(unit_br);
 
-	f.FormFaceFunc(&br, index_array, non_zero_array, &vect_br, 2);
+	//f.FormFaceFunc(&br, index_array, non_zero_array, &vect_br, 2);
 }
 
 void test_test_ref()
@@ -268,7 +269,10 @@ void test_test_ref()
 	vect_t.push_back(trm4);
 	Bracket b(vect_t);
 
-	unit_br.test_ref(b);
+	vector<Bracket> vect_b;
+	vect_b.push_back(b);
+
+	unit_br.test_ref(vect_b);
 }
 
 

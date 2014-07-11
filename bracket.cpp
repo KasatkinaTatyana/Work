@@ -232,7 +232,7 @@ Bracket::Bracket(const Bracket& obj)
 
 		m_N=obj.m_N;
 	}
-	//cout << "Copy!" << endl;
+	// cout << "Copy!" << endl;
 }
 
 //Текущая скобка превращается в скобку с нулевыми элементами размера s
@@ -347,9 +347,9 @@ void Mult(Bracket* br, double* numb, Bracket* result)
 	}
 }
 
-void Bracket::test_ref(Bracket& br)
+void Bracket::test_ref(vector<Bracket>& vect_br)
 {
-	double d_b = br.m_Terms.at(0).g;
-	unsigned N = br.BracketSize();
+	double d_b = vect_br[0].m_Terms.at(0).g;
+	unsigned N = vect_br[0].BracketSize();
 }
 
