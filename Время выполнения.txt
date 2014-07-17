@@ -1,0 +1,6 @@
+LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+ int bHighRes = QueryPerformanceFrequency (&Frequency);
+ QueryPerformanceCounter (&StartPerformCount);
+// Measured function must be here
+ QueryPerformanceCounter (&StopPerformCount);
+ double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;

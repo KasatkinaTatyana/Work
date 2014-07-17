@@ -118,6 +118,73 @@ void SimplifyBracket(Bracket& br)
 	}
 }
 
+void SimplifyBracketPtr(Bracket* br)
+{
+	vector<GainPower_t>* GP = br->GetTermsPtr();
+
+	sort(GP->begin(),GP->end(),comparefun); //сортировка массива
+	//удаление слагаемых с нулевыми коэффициентами
+
+	//Слагаемые с одинаковыми степенями суммируются
+
+	unsigned flag=0, position=0; 
+	double s=0;
+
+	for (unsigned i=0;i<(GP->size()-1);i++)
+	{
+		if (equality(GP->at(i),GP->at(i+1)))
+		{
+			s=s+GP->at(i).g;
+			if (flag==1)
+				GP->at(i).g=0;
+			if (flag==0)
+				position=i;
+			flag=1;
+		}
+		else
+		{
+			if (flag==1)
+			{
+				s=s+GP->at(i).g;
+				GP->at(i).g=0;
+				GP->at(position).g=s;
+				flag=0;
+				s=0;
+			}
+		}
+	}
+	if (flag==1)
+	{
+		s=s+GP->at(GP->size()-1).g;
+		GP->at(GP->size()-1).g=0;
+		GP->at(position).g=s;
+	}
+	//удаление слагаемых с нулевыми коэффициентами
+	vector<GainPower_t>::iterator new_end;
+	new_end=remove_if(GP->begin(),GP->end(),cond);
+	GP->erase(new_end, GP->end());
+
+	//Проверка на то, чтобы в итоге скобка содержала хотя бы один элемент
+/*
+	if (GP->size() > 0)
+		br->SetTerms(GP);
+	else
+	{
+		GainPower_t t = {0.0, 0, 0, 0, 0};
+		std::vector<GainPower_t> term;
+		term.push_back(t);
+
+		br->SetTerms(term);
+	}
+*/
+	if (GP->empty())
+	{
+		GainPower_t t = {0.0, 0, 0, 0, 0};
+		GP->push_back(t);
+	}
+	br->SetBracketSize(GP->size());
+}
+
 //----------------------Возвращает ksi c номером n--------------------------------------
 double DefKsi(unsigned n, double ksi1, double ksi2, double ksi3)
 {
@@ -167,15 +234,30 @@ void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 		n=3;
 		m=4;
 	}
+	if ((gamma==2)&&(beta==1))
+	{
+		n=4;
+		m=3;
+	}
 	if ((gamma==1)&&(beta==3))
 	{
 		n=2;
 		m=4;
 	}
+	if ((gamma==3)&&(beta==1))
+	{
+		n=4;
+		m=2;
+	}
 	if ((gamma==1)&&(beta==4))
 	{
 		n=2;
 		m=3;
+	}
+	if ((gamma==4)&&(beta==1))
+	{
+		n=3;
+		m=2;
 	}
 	if ((gamma==2)&&(beta==3))
 	{
@@ -187,13 +269,24 @@ void Def_nm(unsigned gamma, unsigned beta, vector<unsigned>& vect)
 		n=1;
 		m=3;
 	}
+	if ((gamma==4)&&(beta==2))
+	{
+		n=3;
+		m=1;
+	}
 	if ((gamma==3)&&(beta==4))
 	{
 		n=1;
 		m=2;
+	}
+	if ((gamma==4)&&(beta==3))
+	{
+		n=2;
+		m=1;
 	}
 	vect.push_back(n);
 	vect.push_back(m);
 }
 //возвращает вектор, vect[0]=n, vect[1]=m; n<m;
 //----------------------------------------------------------------------------------------------------
+

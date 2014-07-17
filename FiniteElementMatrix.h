@@ -16,33 +16,57 @@ public:
 
     FiniteElementMatrix(unsigned p, double** simplex_peaks, double** Eps, double** Mu);
     virtual ~FiniteElementMatrix();
-    void MatrixInit();
+
+	void FormArrayAnalyt();     //Формируется массив аналитически заданных собственных функций
+
+	void FormArrayNum();        //Фомируется массив числовых значений собственных функций во всех узлах
+
+    void MatrixInit();        //Формирование метрической матрицы и матрицы Эйлера с аналитических формул
 
 	void NumMatrixInit();    //Формирование метрической матрицы и матрицы Эйлера с использованием численного интегрирования
 
+	// Внутренние методы
     void AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket);
 
     void ShowVectBracket(std::vector<Bracket>& vect_bracket);
 
-    std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
-
-    void ShowMatrixes();
-
     std::vector<Bracket> FormVectEigFunc(Bracket& br, unsigned n, unsigned m);
+
+	std::vector<Bracket> RotorCalc(Bracket& br, unsigned n, unsigned m);
 
 	void NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
 							double ksi1, double ksi2, double ksi3, 
 							std::vector<double>& result);
 
-	double Integrate(Bracket& br);
+	double Integrate(Bracket* br);
 
-	void FormArrayAnalyt();
-	void FormArrayNum();
+	// Отображение результатов
+	void ShowMatrixes();
+
+	void ExportFuncValues(std::string s1, std::string s2, std::string s3);
+
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+	// Блок функций, которые нужны, чтобы вычислять базис с использованием линейных комбинаций
+	void FormArrayAnalyt_LinComb();
+	void FormArrayNum_LinComb();
+	//----------&----------&----------&----------&----------&----------&----------&----------&
+	void FormEdjeFunc(Bracket* bracket,unsigned* index_array,
+					  std::vector<Bracket>* eig_func,
+					  std::vector<Bracket>* rot_eigfunc);
+
+	void FormFaceFunc(Bracket* bracket,unsigned* index_array,
+					  unsigned* non_zero_array, std::vector<Bracket>* eig_func,
+					  std::vector<Bracket>* rot_eigfunc, unsigned ind);
+
+	void FormInsideFunc(Bracket* bracket,unsigned* node_array,
+					    std::vector<Bracket>* eig_func, std::vector<Bracket>* rot_eigfunc, unsigned ind);
+
+	void CalcUnitRot(Bracket* bracket, unsigned numb, std::vector<Bracket>* rot);
 
 private:
 	    unsigned m_QuadOrder;            //Порядок квадратурных формул
-		int Q2;
-		int Q3;
+		int Q2;                          // m_QuadOrder ^ 2
+		int Q3;                          // m_QuadOrder ^ 3 
 
         unsigned m_P;
 
@@ -93,11 +117,13 @@ private:
 		//-------------------------------------------------------------------------------------------------------------
 		double** m_Arr_AllNodes;     //массив всех собственных функций и их роторов во всех узлах 
 		double** m_Arr_RotAllNodes;
-		
-		std::vector< std::vector<Bracket> > m_ArrAnalyt_EigFunc;
-		std::vector< std::vector<Bracket> > m_ArrAnalyt_RotEigFunc;
+
+		bpp_t m_ArrAnalyt_EigFunc;   //массив аналитических собственных функций и их роторов
+		bpp_t m_ArrAnalyt_RotEigFunc;
 
 		void display(unsigned rows, unsigned columns, double** arr);
 };
+
+
 
 #endif // FINITEELEMENTMATRIX_H
