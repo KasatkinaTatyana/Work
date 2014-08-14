@@ -12,7 +12,7 @@
 
 struct _GainPower 
 {
-	double g;             //коэффициент одночлена
+	long double g;             //коэффициент одночлена
     int p1;               //степень переменной ksi_1  
     int p2;               //степень переменной ksi_2  
     int p3;               //степень переменной ksi_3  
@@ -85,8 +85,6 @@ public:
 	void SetSizePtr(unsigned* s);
 
 	void Plus(Bracket* added);
-
-	void test_ref(std::vector<Bracket>& vect_br);
 
 
 private:

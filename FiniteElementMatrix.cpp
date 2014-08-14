@@ -49,7 +49,7 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	//--------------------------
 	//m_MatrixSize=(unsigned)((p+1)*(p+3)*(p+4)/2);
 
-	m_MatrixSize=6*(p+1)+6*p*(p+1)+p*(p*p-1);
+	m_MatrixSize=6*(p+1)+4*p*(p+1)+p*(p*p-1)/2;
 
 	//»нициализаци€ унитарных базисных векторов
 	std::vector<double> r1, r2, r3, r4;
@@ -93,15 +93,50 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 
 	double value;
 
-	m_QuadOrder=4;
-	string s_Roots="Roots4Nodes.txt";
-	string s_Weights="Weights4Nodes.txt";
+	string s_Roots;
+	string s_Weights;
+
+	switch (m_P)
+	{
+		case 0 :
+			m_QuadOrder = 3;
+			s_Roots="Roots3Nodes.txt";
+			s_Weights="Weights3Nodes.txt";
+		break;
+		case 1 :
+			m_QuadOrder = 4;
+			s_Roots="Roots4Nodes.txt";
+			s_Weights="Weights4Nodes.txt";
+			break;
+		case 2 :
+			m_QuadOrder = 6;
+			s_Roots="Roots6Nodes.txt";
+			s_Weights="Weights6Nodes.txt";
+			break;
+		case 3:
+			m_QuadOrder = 8;
+			s_Roots="Roots8Nodes.txt";
+			s_Weights="Weights8Nodes.txt";
+			break;
+		case 4:             
+			m_QuadOrder = 10;
+			s_Roots="Roots10Nodes.txt";
+			s_Weights="Weights10Nodes.txt";
+			break;
+		case 5:
+			m_QuadOrder = 12;
+			s_Roots="Roots12Nodes.txt";
+			s_Weights="Weights12Nodes.txt";
+			break;
+		default:
+			m_QuadOrder = 15;
+			s_Roots="Roots15Nodes.txt";
+			s_Weights="Weights15Nodes.txt";
+			break;
+	}
+
 	Q3 = (int)pow(m_QuadOrder,3);
 	Q2 = (int)pow(m_QuadOrder,2);
-
-	// m_QuadOrder=15;
-	// s_Roots="Roots.txt";
-	// s_Weights="Weights.txt";
 
 	ifstream tfile(s_Roots);
 	while (!tfile.eof())
@@ -133,10 +168,10 @@ FiniteElementMatrix::FiniteElementMatrix(unsigned p, double** simplex_peaks, dou
 	CompareMatrixs();
 	//---------------------------------------------------------------------------------
 	//¬изуализаци€ получившихс€ векторных полей
-	string s1 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi1Data.txt";
-	string s2 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi2Data.txt";
-	string s3 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi3Data.txt";
-	ExportFuncValues(s1, s2, s3);
+	// string s1 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi1Data.txt";
+	// string s2 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi2Data.txt";
+	// string s3 = "F:\\TestBracket\\Array of tetrahedron nodes\\Ksi3Data.txt";
+	// ExportFuncValues(s1, s2, s3);
 }
 
 FiniteElementMatrix::~FiniteElementMatrix()
@@ -198,18 +233,27 @@ void FiniteElementMatrix::MatrixInit()
 
 	Bracket br_sum(1, N_reserve), br_prod(1, N_reserve); //вспомогательные скобки
 
+	double whats;
+	unsigned cc=0;
+
 	for (unsigned i=0;i<m_MatrixSize;i++)
 		for (unsigned j=0;j<m_MatrixSize;j++)
 		{
-			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_EigFunc[i],&m_ArrAnalyt_EigFunc[j],m_MatrixEps,
-				&euler_br, &br_sum, &br_prod);
+			// GeneralVectorTensorVectorProduct(&m_ArrAnalyt_EigFunc[i],&m_ArrAnalyt_EigFunc[j],m_MatrixEps,
+			// 	&euler_br, &br_sum, &br_prod);
+
+			GeneralVectorTensorVectorProduct((m_ArrAnalyt_Shapes+i),(m_ArrAnalyt_Shapes+j),m_MatrixEps,
+			 	&euler_br, &br_sum, &br_prod);
 
 			*(m_EulerMatrix+m_MatrixSize*i+j)=Integrate(&euler_br);
 
-
 			// метрическа€ матрица
-			GeneralVectorTensorVectorProduct(&m_ArrAnalyt_RotEigFunc[i],&m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
-			&metr_br, &br_sum, &br_prod);
+
+			// GeneralVectorTensorVectorProduct(&m_ArrAnalyt_RotEigFunc[i],&m_ArrAnalyt_RotEigFunc[j],m_MatrixMu,
+			// &metr_br, &br_sum, &br_prod);
+
+			GeneralVectorTensorVectorProduct((m_ArrAnalyt_CurlShapes+i),(m_ArrAnalyt_CurlShapes+j),m_MatrixMu,
+			   &metr_br, &br_sum, &br_prod);
 
 			*(m_MetrMatrix+m_MatrixSize*i+j)=Integrate(&metr_br);
 		
@@ -220,6 +264,66 @@ void FiniteElementMatrix::MatrixInit()
 		double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
 		cout << "MatrixInit: ellapsed time = " << msTime << endl;
 }//MatrixInit
+
+//-------------------------‘ормирование матрицы Ёйлера и метрической матрицы с использованием численного интегрировани€-------
+void FiniteElementMatrix::NumMatrixInit()
+{
+	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
+	int bHighRes = QueryPerformanceFrequency (&Frequency);
+	QueryPerformanceCounter (&StartPerformCount);
+	//-------------------------------------------------------------------------------------------------
+	//¬ыдел€ю пам€ть под матрицу Ёйлера и метрическую матрицу
+	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
+	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
+	//--------------------------------------------------
+
+	double I, R, elem; 
+	double u, v;
+
+
+
+	for (unsigned i=0;i<m_MatrixSize;i++)
+	{
+		for (unsigned j=0;j<m_MatrixSize;j++)
+		{
+			I=0;
+			R=0;
+			for (unsigned j_u=0; j_u<m_QuadOrder;j_u++)
+			{
+				for (unsigned j_v=0; j_v<m_QuadOrder;j_v++)
+				{
+					for (unsigned j_w=0; j_w<m_QuadOrder;j_w++)
+					{
+						u=m_Roots[j_u];
+						v=m_Roots[j_v];
+
+						elem=NumericalVectorTensorVectorProduct(m_Arr_AllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+							m_Arr_AllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+							m_MatrixEps);
+
+						I+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
+
+						elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+						m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
+						m_MatrixMu);
+
+						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
+					}//j_w
+				}//j_v
+			}//j_u
+			I*=pow(0.5,3);
+
+			R*=pow(0.5,3);
+			*(m_NumEulerMatrix+m_MatrixSize*i+j)=I;
+			*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
+		}
+	}
+	//-------------------------------------------------------------------------------------------
+	QueryPerformanceCounter (&StopPerformCount);
+	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
+
+	cout << "NumMatrixInit: ellapsed time = " << msTime << endl;
+}//NumMatrixInit
 
 void FiniteElementMatrix::AddToVectBracket(std::vector<GainPower_t>& terms, std::vector<Bracket>& vect_bracket)
 {
@@ -370,7 +474,7 @@ double FiniteElementMatrix::Integrate (Bracket* br)
 		i4=CalcFact(pow4);
 		i_s=CalcFact(pow1+pow2+pow3+pow4+3);
 		//I=I+terms.at(i).g*i1*i2*i3*i4*6.0/i_s;
-		I=I+terms->at(i).g*i1*i2*i3*i4/i_s;
+		I=I+terms->at(i).g/i_s*i1*i2*i3*i4;
 	}
 	return I;
 }
@@ -492,63 +596,6 @@ std::vector<Bracket> FiniteElementMatrix::FormVectEigFunc(Bracket& br, unsigned 
 	return result;
 }
 
-//-------------------------‘ормирование матрицы Ёйлера и метрической матрицы с использованием численного интегрировани€-------
-void FiniteElementMatrix::NumMatrixInit()
-{
-	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
-	int bHighRes = QueryPerformanceFrequency (&Frequency);
-	QueryPerformanceCounter (&StartPerformCount);
-	//-------------------------------------------------------------------------------------------------
-	//¬ыдел€ю пам€ть под матрицу Ёйлера и метрическую матрицу
-	m_NumEulerMatrix = new double[m_MatrixSize*m_MatrixSize];
-	m_NumMetrMatrix = new double[m_MatrixSize*m_MatrixSize];
-	//--------------------------------------------------
-
-	double I, R, elem; 
-	double u, v;
-
-	for (unsigned i=0;i<m_MatrixSize;i++)
-	{
-		for (unsigned j=0;j<m_MatrixSize;j++)
-		{
-			I=0;
-			R=0;
-			for (unsigned j_u=0; j_u<m_QuadOrder;j_u++)
-			{
-				for (unsigned j_v=0; j_v<m_QuadOrder;j_v++)
-				{
-					for (unsigned j_w=0; j_w<m_QuadOrder;j_w++)
-					{
-						u=m_Roots[j_u];
-						v=m_Roots[j_v];
-
-						elem=NumericalVectorTensorVectorProduct(m_Arr_AllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-							m_Arr_AllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-							m_MatrixEps);
-
-						I+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
-
-						elem=NumericalVectorTensorVectorProduct(m_Arr_RotAllNodes[i*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-						m_Arr_RotAllNodes[j*Q3+j_u*Q2+j_v*m_QuadOrder+j_w],
-						m_MatrixMu);
-
-						R+=elem*m_Weights[j_u]*m_Weights[j_v]*m_Weights[j_w]*pow(u,2.0)*v;
-					}//j_w
-				}//j_v
-			}//j_u
-			I*=pow(0.5,3);
-			R*=pow(0.5,3);
-			*(m_NumEulerMatrix+m_MatrixSize*i+j)=I;
-			*(m_NumMetrMatrix+m_MatrixSize*i+j)=R;
-		}
-	}
-	//-------------------------------------------------------------------------------------------
-	QueryPerformanceCounter (&StopPerformCount);
-	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
-
-	cout << "NumMatrixInit: ellapsed time = " << msTime << endl;
-}//NumMatrixInit
-
 void FiniteElementMatrix::NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsigned n, unsigned m, 
 											 double ksi1, double ksi2, double ksi3, 
 											 std::vector<double>& result)
@@ -571,6 +618,9 @@ void FiniteElementMatrix::NumFormVectEigFunc(std::vector<Bracket>& vect_br, unsi
 void FiniteElementMatrix::CompareMatrixs()
 {
 	double max=0;
+
+	double var1, var2;
+
 	std::cout << "============EulerMatrix(i,j) - NumEulerMatrix(i,j)==============" << std::endl;
 	for (unsigned i=0;i<m_MatrixSize;i++)
 	{
@@ -578,7 +628,18 @@ void FiniteElementMatrix::CompareMatrixs()
 		{
 			//std::cout<< "  " << *(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j);
 			if (max < abs( (*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j)) ) )
+				
 				max = abs(*(m_EulerMatrix+i*m_MatrixSize+j) - *(m_NumEulerMatrix+i*m_MatrixSize+j));
+
+			/*if (max > 1)
+			{
+				cout <<  *(m_EulerMatrix+i*m_MatrixSize+j) << "   ";
+
+				cout <<  *(m_NumEulerMatrix+i*m_MatrixSize+j) << endl;
+
+			}*/
+
+
 		}
 		//std::cout << std::endl;
 	}
@@ -692,7 +753,13 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 	LARGE_INTEGER Frequency, StartPerformCount, StopPerformCount;
 	int bHighRes = QueryPerformanceFrequency (&Frequency);
 	QueryPerformanceCounter (&StartPerformCount);
-	//-----------------------------------------------------------------------------------------------
+	//----------------------------------------------------------------------------------------------
+	
+	m_ArrAnalyt_Shapes = new bp_t[m_MatrixSize];
+	m_ArrAnalyt_CurlShapes = new bp_t[m_MatrixSize];
+
+	unsigned count = 0;
+
 	unsigned low = 0;
 	unsigned high = m_P + 1;
 
@@ -704,7 +771,7 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 	index_array = new unsigned[3];
 	non_zero_arr = new unsigned[3];
 
-	int N_reserve = 36*pow(m_P,2)*1000;
+	int N_reserve = 36*pow(m_P,2)*2000;
 
 	Bracket cur_bracket;
 
@@ -750,8 +817,13 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							}
 
 							FormEdjeFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
 
 							vect_bracket.clear();
 						}//ребро
@@ -791,13 +863,21 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 
 							FormFaceFunc(&cur_bracket, index_array,
 								non_zero_arr, &eig_func, &rot_eig_func, 1);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
 
 							FormFaceFunc(&cur_bracket, index_array,
 								non_zero_arr, &eig_func, &rot_eig_func, 2);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
 
 							vect_bracket.clear();
 						}//грань
@@ -823,24 +903,35 @@ void FiniteElementMatrix::FormArrayAnalyt_LinComb()
 							index_array[3] = l;
 
 							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 1);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
 
 							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 2);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
 
 							FormInsideFunc(&cur_bracket, index_array, &eig_func, &rot_eig_func, 3);
-							m_ArrAnalyt_EigFunc.push_back(eig_func);
-							m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+							// m_ArrAnalyt_EigFunc.push_back(eig_func);
+							// m_ArrAnalyt_RotEigFunc.push_back(rot_eig_func);
+
+							*(m_ArrAnalyt_Shapes+count)=eig_func;
+							*(m_ArrAnalyt_CurlShapes+count)=rot_eig_func;
+							count++;
+							vect_bracket.clear();
 						}//внутренн€€ область
 					}//условие
 				}//l
 			}//k
 		}//j
 	}//i
-	m_MatrixSize = (unsigned) (6*(m_P+1) + m_P*(m_P+1) + m_P*(m_P*m_P-1)/2);   //размерности метрической матрицы
-	// и матрицы Ёйлера, если базинсые функции формируютс€ как линейные комбинации
 	//-------------------------------------------------------------------------------------------
 	QueryPerformanceCounter (&StopPerformCount);
 	double msTime = (double)(StopPerformCount.QuadPart - StartPerformCount.QuadPart) / (double)Frequency.QuadPart * 1.E3;
@@ -891,8 +982,11 @@ void FiniteElementMatrix::FormArrayNum_LinComb()
 					y = u*v*(1.0 - w);
 					z = u*(1.0 - v);
 
-					VectBracketValue(m_ArrAnalyt_EigFunc.at(elems_count), x, y, z, num_EigFunc);
-					VectBracketValue(m_ArrAnalyt_RotEigFunc.at(elems_count), x, y, z, num_RotEigFunc);
+					// VectBracketValue(m_ArrAnalyt_EigFunc.at(elems_count), x, y, z, num_EigFunc);
+					// VectBracketValue(m_ArrAnalyt_RotEigFunc.at(elems_count), x, y, z, num_RotEigFunc);
+
+					VectBracketValue(*(m_ArrAnalyt_Shapes+elems_count), x, y, z, num_EigFunc);
+					VectBracketValue(*(m_ArrAnalyt_CurlShapes+elems_count), x, y, z, num_RotEigFunc);
 
 					for (unsigned d=0;d<m_Dim;d++)
 					{

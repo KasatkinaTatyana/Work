@@ -10,6 +10,7 @@
 #include <iterator>
 
 using namespace std;
+
 //-----Возвращает значение произведения скобок при соответсвующих значениях ksi1, ksi2, ksi3------
 double ProdVectBracketValue (vector<Bracket>& br, double ksi1, double ksi2, double ksi3)
 {
@@ -46,14 +47,15 @@ void LocalTermsChange(GainPower_t& local_terms, unsigned ind,unsigned value)
 //--------------------------------------------------------------------------------------------
 //------Исходная скобка упрощается: сортируется по возрастанию степеней, удаляются слагаемые
 //------с нулевыми коэффициентами, коэффициенты при одинаковых степенях суммируются-----------
+// 170 = (10+3)^2 + 1 - максимальный порядок многочленов, если макисмальный порядок = 10
 bool comparefun(GainPower_t x, GainPower_t y)
 {
-	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) > (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
+	return ( (x.p1*pow(170,3)+x.p2*pow(170,2)+x.p3*170+x.p4) > (y.p1*pow(170,3)+y.p2*pow(170,2)+y.p3*170+y.p4) );
 }
 
 bool equality(GainPower_t x, GainPower_t y)
 {
-	return ( (x.p1*1000+x.p2*100+x.p3*10+x.p4) == (y.p1*1000+y.p2*100+y.p3*10+y.p4) );
+	return ( (x.p1*pow(170,3)+x.p2*pow(170,2)+x.p3*170+x.p4) == (y.p1*pow(170,3)+y.p2*pow(170,2)+y.p3*170+y.p4) );
 }
 bool cond(GainPower_t x)
 {

@@ -28,7 +28,6 @@ double StopTimeMeasure(LARGE_INTEGER& StartPerformCount);
 void test_DefFaceInd();
 void test_FormFaceFunc();
 
-void test_test_ref();
 
 //------------------------------------------------------------------
 
@@ -116,7 +115,7 @@ void test_Matrixs()
 
 
 	//double pr=NumericalVectorTensorVectorProduct(a,b,Eps);
-    FiniteElementMatrix f(1,simplex_peaks,Eps,Mu);
+    FiniteElementMatrix f(5,simplex_peaks,Eps,Mu);
 }
 
 
@@ -257,23 +256,6 @@ void test_FormFaceFunc()
 	//f.FormFaceFunc(&br, index_array, non_zero_array, &vect_br, 2);
 }
 
-void test_test_ref()
-{
-	GainPower_t trm3={1.0, 0, 0, 0, 0};
-	vector<GainPower_t> vect_t;
-	vect_t.push_back(trm3);
-	Bracket unit_br(vect_t);
-
-	GainPower_t trm4={2.0, 0, 0, 0, 0};
-	
-	vect_t.push_back(trm4);
-	Bracket b(vect_t);
-
-	vector<Bracket> vect_b;
-	vect_b.push_back(b);
-
-	unit_br.test_ref(vect_b);
-}
 
 
 

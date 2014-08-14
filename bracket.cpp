@@ -345,11 +345,6 @@ void Mult(Bracket* br, double* numb, Bracket* result)
 		rTerms->at(i).p3=brTerms->at(i).p3;
 		rTerms->at(i).p4=brTerms->at(i).p4;
 	}
-}
-
-void Bracket::test_ref(vector<Bracket>& vect_br)
-{
-	double d_b = vect_br[0].m_Terms.at(0).g;
-	unsigned N = vect_br[0].BracketSize();
+	SimplifyBracketPtr(result);
 }
 

@@ -9,7 +9,6 @@
 #include <cstdlib>
 #include <ctime>
 
-
 bool comparefun(GainPower_t x, GainPower_t y);
 
 bool cond(GainPower_t x);

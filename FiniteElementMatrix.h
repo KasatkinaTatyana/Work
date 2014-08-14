@@ -86,7 +86,7 @@ private:
         double *m_EulerMatrix;                   //ћатрица Ёйлера
 		double *m_NumEulerMatrix;                //ћатрица Ёйлера при численном интегрировании 
 		double *m_NumMetrMatrix;                //ћетрическа€ матрица при численном интегрировании 
-        unsigned m_MatrixSize;    //размерность метрической матрицы и матрицы Ёйлера
+        int m_MatrixSize;    //размерность метрической матрицы и матрицы Ёйлера
 
         //¬ычисление факториалов--------------------------------------------------------------------------------------------
         double Fact(unsigned N);
@@ -120,6 +120,9 @@ private:
 
 		bpp_t m_ArrAnalyt_EigFunc;   //массив аналитических собственных функций и их роторов
 		bpp_t m_ArrAnalyt_RotEigFunc;
+
+		bp_t* m_ArrAnalyt_Shapes;
+		bp_t* m_ArrAnalyt_CurlShapes;
 
 		void display(unsigned rows, unsigned columns, double** arr);
 };
